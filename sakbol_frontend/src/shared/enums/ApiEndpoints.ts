@@ -24,5 +24,12 @@ export const API_ENDPOINTS = {
     UPDATE: "/general/locations_module/update/"
   },
 
-  SUBSCRIBE: "/push/subscribe/"
+  SUBSCRIBE: "/push/subscribe/",
+
+  GEOFENCES: {
+    LIST:         "/general/contacts_module/geofences/",
+    BY_ID:        (id: number) => `/general/contacts_module/geofences/${id}/`,
+    CHECK_OUTSIDE:(id: number, childId: number) =>
+                  `/general/contacts_module/geofences/${id}/check-outside/?child_id=${childId}`,
+  },
 } as const;

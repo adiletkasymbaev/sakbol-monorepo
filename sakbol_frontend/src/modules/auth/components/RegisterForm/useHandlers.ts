@@ -11,28 +11,25 @@ import { useState } from "react";
 
 export function useHandlers() {
   const navigate = useNavigate();
-  const setTokenPair = useAuth((state) => state.setTokenPair);
-  const setUserId = useAuth((state) => state.setUserId);
-  const setUserRole = useAuth((state) => state.setUserRole);
+  const setLoginData = useAuth((state) => state.setLoginData);
   const [isLoading, setLoading] = useState(false);
 
   const onFormSubmit = async (data: RegisterFormType) => {
     if (isLoading) return;
-
     setLoading(true);
 
-    const date = dateToString(data.birth_date);
     const payload = {
       ...data,
-      birth_date: date,
+      birth_date: dateToString(data.birth_date),
     };
 
     try {
       const response = await authService.register(payload);
+      const { access, refresh, user_id, role } = response.data;
 
-      setTokenPair(response.data.access, response.data.refresh);
-      setUserId(response.data.user_id);
-      setUserRole(response.data.role);
+      setLoginData(access, refresh, user_id, role);
+
+      console.log("saved userId:", useAuth.getState().userId);
 
       addToast({
         title: ToastTypes.OK,
@@ -41,8 +38,8 @@ export function useHandlers() {
       });
 
       setTimeout(() => {
-        navigate(`/${UrlNames.LOGIN}`)
-      }, 1000)
+        navigate(`/${UrlNames.LOGIN}`);
+      }, 1000);
     } catch (error) {
       const messages = parseApiErrorToArray(error);
       messages.forEach((message) =>
@@ -53,9 +50,9 @@ export function useHandlers() {
         })
       );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
-  return { onFormSubmit, isLoading }
+  return { onFormSubmit, isLoading };
 }

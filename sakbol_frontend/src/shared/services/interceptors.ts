@@ -1,17 +1,23 @@
-import type {
+import axios, {
   AxiosError,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
 } from "axios";
 import api from "./axios";
-import { authService } from "./authService";
 import useAuth from "../../store/useAuth";
+import UrlNames from "../enums/UrlNames";
+
+// отдельный axios ТОЛЬКО для refresh (без интерсепторов)
+const refreshApi = axios.create({
+  baseURL: api.defaults.baseURL,
+  withCredentials: (api.defaults as any)?.withCredentials,
+});
 
 let isRefreshing = false;
 let failedQueue: Array<(token: string | null) => void> = [];
 
 const processQueue = (token: string | null) => {
-  failedQueue.forEach((cb) => cb(token));
+  for (const cb of failedQueue) cb(token);
   failedQueue = [];
 };
 
@@ -19,14 +25,34 @@ type RetryConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
 };
 
+function hardRedirectToLogin() {
+  // чтобы гарантированно перекинуло даже если роуты/RequireAuth не оборачивают страницу
+  window.location.replace(`/${UrlNames.LOGIN}`);
+}
+
 export const setupAuthInterceptor = () => {
+  // защита от повторной установки (HMR/вызов в нескольких местах)
+  if ((api.defaults as any).__authInterceptorInstalled) return;
+  (api.defaults as any).__authInterceptorInstalled = true;
+
   /* ================= REQUEST ================= */
   api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-      const { tokenAccess: access } = useAuth.getState();
+      const access = useAuth.getState().tokenAccess;
+
+      config.headers = config.headers ?? {};
+
+      // ВАЖНО: не добавляем Authorization на refresh endpoint
+      const url = config.url ?? "";
+      if (url.includes("/auth/refresh")) {
+        delete (config.headers as any).Authorization;
+        return config;
+      }
 
       if (access) {
-        config.headers.Authorization = `Bearer ${access}`;
+        (config.headers as any).Authorization = `Bearer ${access}`;
+      } else {
+        delete (config.headers as any).Authorization;
       }
 
       return config;
@@ -37,37 +63,45 @@ export const setupAuthInterceptor = () => {
   /* ================= RESPONSE ================= */
   api.interceptors.response.use(
     (response: AxiosResponse) => response,
-
     async (error: AxiosError) => {
+      if (!error.config) return Promise.reject(error);
+
       const originalRequest = error.config as RetryConfig;
+      const status = error.response?.status;
 
-      if (
-        error.response?.status !== 401 ||
-        originalRequest._retry
-      ) {
-        return Promise.reject(error);
-      }
+      // если не 401 — не трогаем
+      if (status !== 401) return Promise.reject(error);
 
+      // уже ретраили — не зацикливаем
+      if (originalRequest._retry) return Promise.reject(error);
       originalRequest._retry = true;
 
-      const { tokenRefresh: refresh, setTokenPair, logout } =
-        useAuth.getState();
+      const { tokenRefresh: refresh, setTokenPair, logout } = useAuth.getState();
 
+      // нет refresh — выходим
       if (!refresh) {
         logout();
+        hardRedirectToLogin();
         return Promise.reject(error);
       }
 
-      /* === если уже идёт refresh — ждём === */
+      // если это сам refresh endpoint — не пытаемся рефрешить рефреш
+      const url = originalRequest.url ?? "";
+      if (url.includes("/auth/refresh")) {
+        logout();
+        hardRedirectToLogin();
+        return Promise.reject(error);
+      }
+
+      // если refresh уже идет — ставим в очередь
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push((token) => {
-            if (!token) {
-              reject(error);
-              return;
-            }
+            if (!token) return reject(error);
 
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+            originalRequest.headers = originalRequest.headers ?? {};
+            (originalRequest.headers as any).Authorization = `Bearer ${token}`;
+
             resolve(api(originalRequest));
           });
         });
@@ -76,18 +110,31 @@ export const setupAuthInterceptor = () => {
       isRefreshing = true;
 
       try {
-        const response = await authService.refresh(refresh);
-        const newAccess = response.data.access;
+        // refresh БЕЗ Authorization, БЕЗ интерсепторов
+        const res = await refreshApi.post("/auth/refresh/", { refresh });
 
-        setTokenPair(newAccess, refresh);
+        const newAccess = (res.data as any)?.access as string | undefined;
+        const newRefresh = (res.data as any)?.refresh as string | undefined; // если rotation
+
+        if (!newAccess) {
+          processQueue(null);
+          logout();
+          hardRedirectToLogin();
+          return Promise.reject(error);
+        }
+
+        setTokenPair(newAccess, newRefresh ?? refresh);
         processQueue(newAccess);
 
-        originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+        originalRequest.headers = originalRequest.headers ?? {};
+        (originalRequest.headers as any).Authorization = `Bearer ${newAccess}`;
+
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch (e) {
         processQueue(null);
         logout();
-        return Promise.reject(refreshError);
+        hardRedirectToLogin();
+        return Promise.reject(e);
       } finally {
         isRefreshing = false;
       }

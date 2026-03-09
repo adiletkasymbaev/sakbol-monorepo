@@ -40,11 +40,12 @@ export const useLocation = create<LocationState>((set) => ({
       displayLon: lon,
     }),
 
-  setGeoLocation: (lat, lon) =>
-    set({
-      geoLat: lat,
-      geoLon: lon,
-    }),
+  setGeoLocation: (lat, lon) => set({
+    geoLat: lat,
+    geoLon: lon,
+    displayLat: lat,
+    displayLon: lon,
+  }),
 
   fetchContactsLocations: async () => {
     set({ isLoading: true });

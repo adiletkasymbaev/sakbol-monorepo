@@ -6,9 +6,10 @@ interface ComponentProps {
   avatar?: string;
   isUser?: boolean;
   name?: string;
+  zIndex?: number;
 }
 
-function CustomMarker({ position, avatar = "", isUser = false, name = "" }: ComponentProps) {
+function CustomMarker({ position, avatar = "", isUser = false, name = "", zIndex = 9990 }: ComponentProps) {
   // Текст, если нет аватарки
   const fallbackText = isUser ? "Вы" : name.length > 0 ? name : "Нет фото";
 
@@ -22,7 +23,7 @@ function CustomMarker({ position, avatar = "", isUser = false, name = "" }: Comp
             top: -72px;
             left: 10%;
             transform: translateX(-50%);
-            z-index: 9999;
+            z-index: ${zIndex};
             width: 63px;
             height: 63px;
             overflow: hidden;
@@ -41,7 +42,7 @@ function CustomMarker({ position, avatar = "", isUser = false, name = "" }: Comp
         <img
           src="images/marker.png"
           alt="Marker"
-          style="position: absolute; top: -80px; left: -32px; z-index: 9998; ${isUser ? 'filter: brightness(0) saturate(100%) invert(68%) sepia(70%) saturate(332%) hue-rotate(306deg) brightness(96%) contrast(99%);' : ''}"
+          style="position: absolute; top: -80px; left: -32px; z-index: ${zIndex - 1}; ${isUser ? 'filter: brightness(0) saturate(100%) invert(68%) sepia(70%) saturate(332%) hue-rotate(306deg) brightness(96%) contrast(99%);' : ''}"
         >
       </div>
     `,
@@ -49,7 +50,7 @@ function CustomMarker({ position, avatar = "", isUser = false, name = "" }: Comp
     iconAnchor: [8, 8],
   });
 
-  return <Marker position={position} icon={icon} />;
+  return <Marker pane={isUser ? "topMarkers" : "markerPane"} position={position} icon={icon} />;
 }
 
 export default CustomMarker;

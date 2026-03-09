@@ -157,15 +157,6 @@ function ProfilePage() {
                   </div>
                 </div>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button color="primary" variant="solid" onPress={fetchUser}>
-                  Обновить
-                </Button>
-                <Button color="secondary" variant="solid" isDisabled>
-                  Редактировать (скоро)
-                </Button>
-              </div>
             </CardBody>
           </Card>
         </div>
