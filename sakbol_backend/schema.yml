@@ -1,0 +1,4052 @@
+openapi: 3.0.3
+info:
+  title: Sakbol API
+  version: 1.0.0
+  description: Документация API
+paths:
+  /accounts/login/:
+    post:
+      operationId: accounts_login_create
+      description: |2
+
+        Авторизация пользователя по email и паролю.
+
+        **Входные данные:**
+        - `email` (string, required) — email пользователя
+        - `password` (string, required) — пароль
+
+        **Выходные данные:**
+        - `access` — access token
+        - `refresh` — refresh token
+        - `user_id` — ID пользователя
+        - `email` — email пользователя
+        - `role` — роль пользователя
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailTokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailTokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailTokenObtainPairRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  refresh:
+                    type: string
+                    description: JWT refresh token
+                  access:
+                    type: string
+                    description: JWT access token
+                  user_id:
+                    type: integer
+                    description: ID созданного пользователя
+                  email:
+                    type: string
+                    format: email
+                    description: Email пользователя
+                  role:
+                    type: string
+                    description: Роль пользователя
+          description: ''
+  /accounts/profile/{user_id}/:
+    get:
+      operationId: accounts_profile_retrieve
+      description: Детальная информация о профиле пользователя
+      parameters:
+      - in: path
+        name: user_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      email:
+                        type: string
+                        format: email
+                      first_name:
+                        type: string
+                      last_name:
+                        type: string
+                  first_name:
+                    type: string
+                  last_name:
+                    type: string
+                  birth_date:
+                    type: string
+                    format: date
+                  city:
+                    type: string
+                    nullable: true
+                  street:
+                    type: string
+                    nullable: true
+                  house_number:
+                    type: string
+                    nullable: true
+                  apartment_number:
+                    type: string
+                    nullable: true
+                  med_info:
+                    type: string
+                    nullable: true
+                  role:
+                    type: string
+                  is_online:
+                    type: boolean
+                  last_seen:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  identifier:
+                    type: string
+                    nullable: true
+                  avatar:
+                    type: string
+                    format: uri
+                    nullable: true
+                  phone_number:
+                    type: string
+                    nullable: true
+          description: ''
+  /accounts/profile/avatar/:
+    post:
+      operationId: accounts_profile_avatar_create
+      description: |2
+
+        Обновление аватара пользователя.
+
+        **Входные данные (multipart/form-data):**
+        - `user_id` (integer, required) — ID пользователя
+        - `avatar` (file, required) — файл аватара
+
+        **Выходные данные:**
+        - `id` (integer)
+        - `user` (object):
+            - `id` (integer)
+            - `email` (string)
+            - `first_name` (string)
+            - `last_name` (string)
+        - `avatar` (string, URL до аватара)
+        - `created_at`, `updated_at` (string, datetime)
+      tags:
+      - accounts
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AvatarUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AvatarUpdateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileDetail'
+          description: ''
+  /accounts/profile/me/:
+    get:
+      operationId: accounts_profile_me_retrieve
+      description: Детальная информация о профиле пользователя
+      tags:
+      - accounts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      email:
+                        type: string
+                        format: email
+                      first_name:
+                        type: string
+                      last_name:
+                        type: string
+                  first_name:
+                    type: string
+                  last_name:
+                    type: string
+                  birth_date:
+                    type: string
+                    format: date
+                  city:
+                    type: string
+                    nullable: true
+                  street:
+                    type: string
+                    nullable: true
+                  house_number:
+                    type: string
+                    nullable: true
+                  apartment_number:
+                    type: string
+                    nullable: true
+                  med_info:
+                    type: string
+                    nullable: true
+                  role:
+                    type: string
+                  is_online:
+                    type: boolean
+                  last_seen:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  identifier:
+                    type: string
+                    nullable: true
+                  avatar:
+                    type: string
+                    format: uri
+                    nullable: true
+                  phone_number:
+                    type: string
+                    nullable: true
+          description: ''
+  /accounts/refresh/:
+    post:
+      operationId: accounts_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /accounts/register/:
+    post:
+      operationId: accounts_register_create
+      description: |2
+
+        Регистрация нового пользователя.
+
+        **Входные данные (multipart/json):**
+        - `email` (string, required) — email пользователя
+        - `password` (string, required) — пароль
+        - `first_name` (string, required) — имя
+        - `last_name` (string, required) — фамилия
+        - `birth_date` (string, required) — дата рождения в формате YYYY-MM-DD
+        - `phone_number` (string, required) — телефон в международном формате
+        - `city` (string, required)
+        - `street` (string, required)
+        - `house_number` (string, required)
+        - `apartment_number` (string, optional)
+        - `med_info` (string, optional)
+        - `role` (string, optional) — роль пользователя
+      tags:
+      - accounts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  refresh:
+                    type: string
+                    description: JWT refresh token
+                  access:
+                    type: string
+                    description: JWT access token
+                  user_id:
+                    type: integer
+                    description: ID созданного пользователя
+                  email:
+                    type: string
+                    format: email
+                    description: Email пользователя
+          description: ''
+  /general/contacts_module/alerts/:
+    get:
+      operationId: general_contacts_module_alerts_list
+      description: Возвращает все Alert-сигналы текущего пользователя.
+      summary: Список Alert-сигналов
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - Alert Signals
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAlertSignalList'
+          description: ''
+    post:
+      operationId: general_contacts_module_alerts_create
+      description: Создаёт новый Alert-сигнал с координатами.
+      summary: Создать Alert-сигнал
+      tags:
+      - Alert Signals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertSignalCreateRequest'
+            examples:
+              ПримерЗапроса:
+                value:
+                  latitude: 42.8746
+                  longitude: 74.5698
+                summary: Пример запроса
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AlertSignalCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AlertSignalCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSignal'
+          description: ''
+        '400':
+          description: Ошибка валидации.
+        '401':
+          description: Не авторизован.
+  /general/contacts_module/alerts/{id}/:
+    get:
+      operationId: general_contacts_module_alerts_retrieve
+      description: CRUD для Alert-сигналов.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSignal'
+          description: ''
+    put:
+      operationId: general_contacts_module_alerts_update
+      description: CRUD для Alert-сигналов.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSignal'
+          description: ''
+    patch:
+      operationId: general_contacts_module_alerts_partial_update
+      description: CRUD для Alert-сигналов.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSignal'
+          description: ''
+    delete:
+      operationId: general_contacts_module_alerts_destroy
+      description: CRUD для Alert-сигналов.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /general/contacts_module/alerts/{id}/answer/:
+    post:
+      operationId: general_contacts_module_alerts_answer_create
+      description: Создаёт ответ на указанный Alert-сигнал.
+      summary: Ответить на Alert-сигнал
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Alert Signals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertSignalAnswerCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AlertSignalAnswerCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AlertSignalAnswerCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSignalAnswer'
+          description: ''
+        '400':
+          description: Ошибка валидации.
+        '401':
+          description: Не авторизован.
+  /general/contacts_module/alerts/{id}/answers/:
+    get:
+      operationId: general_contacts_module_alerts_answers_list
+      description: Возвращает все ответы на указанный Alert-сигнал.
+      summary: Список ответов на Alert-сигнал
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - Alert Signals
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAlertSignalAnswerList'
+          description: ''
+        '404':
+          description: Не найдено.
+  /general/contacts_module/contacts/:
+    get:
+      operationId: general_contacts_module_contacts_list
+      description: |-
+        Возвращает список Contact, где текущий пользователь является `from_user` или `to_user`.
+
+        Можно фильтровать по статусу принятия.
+      summary: Список контактов пользователя
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - accepted
+          - pending
+        description: 'Фильтр: accepted | pending'
+      tags:
+      - Contacts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContactList'
+          description: ''
+    post:
+      operationId: general_contacts_module_contacts_create
+      description: |-
+        Создаёт заявку в контакты по `identifier` профиля.
+        `from_user` берётся из `request.user`.
+      summary: Создать заявку в контакты
+      tags:
+      - Contacts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactCreateRequest'
+            examples:
+              ПримерЗапроса:
+                value:
+                  identifier: ABC123
+                summary: Пример запроса
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContactCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ContactCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+        '400':
+          description: 'Валидация: профиль не найден / нельзя себя / запрос уже существует.'
+        '401':
+          description: Не авторизован.
+  /general/contacts_module/contacts/{id}/:
+    get:
+      operationId: general_contacts_module_contacts_retrieve
+      description: Доступно только участникам контакта (from_user/to_user).
+      summary: Получить контакт по id
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Контакт.
+        required: true
+      tags:
+      - Contacts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+        '403':
+          description: Нет доступа к этому контакту.
+        '404':
+          description: Не найдено.
+    delete:
+      operationId: general_contacts_module_contacts_destroy
+      description: Удалить может участник контакта (from_user/to_user) или staff.
+      summary: Удалить контакт/заявку
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Контакт.
+        required: true
+      tags:
+      - Contacts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: Удалено.
+        '403':
+          description: Нет прав удалять этот контакт.
+        '404':
+          description: Не найдено.
+  /general/contacts_module/contacts/{id}/accept/:
+    post:
+      operationId: general_contacts_module_contacts_accept_create
+      description: |-
+        Принять заявку может только получатель (`to_user`).
+        Если уже принято — вернёт текущий объект.
+      summary: Принять заявку в контакты
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Контакт.
+        required: true
+      tags:
+      - Contacts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contact'
+          description: ''
+        '403':
+          description: Только получатель запроса может принять контакт.
+        '404':
+          description: Не найдено.
+  /general/contacts_module/contacts/incoming/:
+    get:
+      operationId: general_contacts_module_contacts_incoming_list
+      description: |-
+        Возвращает список заявок, которые другие пользователи отправили текущему пользователю.
+        Только pending: to_user = текущий пользователь и is_accepted = false.
+      summary: Входящие заявки в контакты
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - Contacts
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedContactList'
+          description: ''
+        '401':
+          description: Не авторизован.
+  /general/contacts_module/geofences/:
+    get:
+      operationId: general_contacts_module_geofences_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGeofenceList'
+          description: ''
+    post:
+      operationId: general_contacts_module_geofences_create
+      tags:
+      - general
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeofenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GeofenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GeofenceRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Geofence'
+          description: ''
+  /general/contacts_module/geofences/{id}/:
+    get:
+      operationId: general_contacts_module_geofences_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Geofence'
+          description: ''
+    put:
+      operationId: general_contacts_module_geofences_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeofenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GeofenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GeofenceRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Geofence'
+          description: ''
+    patch:
+      operationId: general_contacts_module_geofences_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGeofenceRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGeofenceRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGeofenceRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Geofence'
+          description: ''
+    delete:
+      operationId: general_contacts_module_geofences_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /general/contacts_module/geofences/{id}/check-outside/:
+    get:
+      operationId: general_contacts_module_geofences_check_outside_retrieve
+      description: Проверяет текущее местоположение указанного ребёнка относительно
+        данной зоны. Если ребёнок за пределами — отправляет push всем его устройствам
+        родителя.
+      summary: Проверить, находится ли ребёнок вне зоны
+      parameters:
+      - in: query
+        name: child_id
+        schema:
+          type: integer
+        description: ID пользователя-ребёнка
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - Geofences
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: '{ outside, child_id, geofence_id, latitude, longitude }'
+        '400':
+          description: child_id не указан или ребёнок не в этой зоне.
+        '403':
+          description: Нет прав.
+        '404':
+          description: Не найдено.
+  /general/contacts_module/sos/:
+    get:
+      operationId: general_contacts_module_sos_list
+      description: Возвращает все SOS-сигналы текущего пользователя.
+      summary: Список SOS-сигналов
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - SOS Signals
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSosSignalList'
+          description: ''
+    post:
+      operationId: general_contacts_module_sos_create
+      description: Создаёт новый SOS-сигнал с координатами и опционально сервисом/точкой.
+      summary: Создать SOS-сигнал
+      tags:
+      - SOS Signals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SosSignalCreateRequest'
+            examples:
+              ПримерЗапроса:
+                value:
+                  latitude: 42.8746
+                  longitude: 74.5698
+                  service_id: 1
+                  service_point_id: 5
+                summary: Пример запроса
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SosSignalCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SosSignalCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SosSignal'
+          description: ''
+        '400':
+          description: Ошибка валидации.
+        '401':
+          description: Не авторизован.
+  /general/contacts_module/sos/{id}/:
+    get:
+      operationId: general_contacts_module_sos_retrieve
+      description: Доступно только отправителю сигнала.
+      summary: Получить SOS-сигнал по id
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - SOS Signals
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SosSignal'
+          description: ''
+        '403':
+          description: Нет доступа к этому сигналу.
+        '404':
+          description: Не найдено.
+    put:
+      operationId: general_contacts_module_sos_update
+      description: CRUD для SOS-сигналов.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SosSignal'
+          description: ''
+    patch:
+      operationId: general_contacts_module_sos_partial_update
+      description: CRUD для SOS-сигналов.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SosSignal'
+          description: ''
+    delete:
+      operationId: general_contacts_module_sos_destroy
+      description: CRUD для SOS-сигналов.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - general
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /general/contacts_module/sos/{id}/activate/:
+    post:
+      operationId: general_contacts_module_sos_activate_create
+      description: Меняет статус сигнала на ACTIVE.
+      summary: Активировать SOS-сигнал
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - SOS Signals
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SosSignal'
+          description: ''
+        '403':
+          description: Нет доступа.
+        '404':
+          description: Не найдено.
+  /general/contacts_module/sos/{id}/deactivate/:
+    post:
+      operationId: general_contacts_module_sos_deactivate_create
+      description: Меняет статус сигнала на INACTIVE.
+      summary: Деактивировать SOS-сигнал
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - SOS Signals
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SosSignal'
+          description: ''
+        '403':
+          description: Нет доступа.
+        '404':
+          description: Не найдено.
+  /general/locations_module/contacts/:
+    get:
+      operationId: general_locations_module_contacts_list
+      description: Возвращает список локаций пользователей, которые находятся в принятых
+        контактах с текущим пользователем (is_accepted=true).
+      summary: Локации контактов
+      tags:
+      - Locations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContactLocationItem'
+          description: ''
+        '401':
+          description: Не авторизован.
+  /general/locations_module/update/:
+    post:
+      operationId: general_locations_module_update_create
+      description: Создаёт или обновляет Location для текущего пользователя.
+      summary: Обновить текущую геолокацию
+      tags:
+      - Locations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationUpdateRequest'
+            examples:
+              ПримерЗапроса:
+                value:
+                  latitude: 42.8746
+                  longitude: 74.5698
+                summary: Пример запроса
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LocationUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LocationUpdateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+          description: ''
+        '400':
+          description: Ошибка валидации.
+        '401':
+          description: Не авторизован.
+  /gov/service-points/:
+    get:
+      operationId: gov_service_points_list
+      description: |-
+        list/retrieve для пунктов. Поддерживает фильтрацию по city и service через query params:
+        /api/service-points/?city=Bishkek
+        /api/service-points/?service=3  (id службы)
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - gov
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedServicePointList'
+          description: ''
+  /gov/service-points/{id}/:
+    get:
+      operationId: gov_service_points_retrieve
+      description: |-
+        list/retrieve для пунктов. Поддерживает фильтрацию по city и service через query params:
+        /api/service-points/?city=Bishkek
+        /api/service-points/?service=3  (id службы)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Пункт гос. службы.
+        required: true
+      tags:
+      - gov
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePoint'
+          description: ''
+  /gov/services/:
+    get:
+      operationId: gov_services_list
+      description: list/retrieve для гос. служб. Включены связанные пункты через сериализатор.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - gov
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedServiceList'
+          description: ''
+  /gov/services/{id}/:
+    get:
+      operationId: gov_services_retrieve
+      description: list/retrieve для гос. служб. Включены связанные пункты через сериализатор.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Гос. служба.
+        required: true
+      tags:
+      - gov
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+          description: ''
+  /push/fcm/devices/:
+    get:
+      operationId: push_fcm_devices_retrieve
+      description: |-
+        Список всех FCM устройств пользователя.
+        GET /push/fcm/devices/
+      tags:
+      - push
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /push/fcm/register/:
+    post:
+      operationId: push_fcm_register_create
+      description: |-
+        Регистрация FCM токена для мобильных уведомлений.
+        POST /push/fcm/register/
+        body: { registration_id, device_type: "android"|"ios"|"web", device_id? }
+      tags:
+      - push
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /push/fcm/unregister/:
+    post:
+      operationId: push_fcm_unregister_create
+      description: |-
+        Удаление FCM токена (отписка от уведомлений).
+        DELETE /push/fcm/unregister/
+        body: { registration_id } или { device_id }
+      tags:
+      - push
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /push/public-key/:
+    get:
+      operationId: push_public_key_retrieve
+      tags:
+      - push
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /push/subscribe/:
+    post:
+      operationId: push_subscribe_create
+      tags:
+      - push
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          description: No response body
+  /tour/groups/:
+    get:
+      operationId: tour_groups_list
+      description: Получение списка всех групп, созданных текущим тур-агентом.
+      summary: Список групп турагента
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTourGroupList'
+          description: ''
+    post:
+      operationId: tour_groups_create
+      description: Создание новой группы для туристов. Только для тур-агентов.
+      summary: Создать группу
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupCreate'
+          description: ''
+  /tour/groups/{id}/:
+    get:
+      operationId: tour_groups_retrieve
+      description: Получение подробной информации о группе.
+      summary: Детали группы
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupDetail'
+          description: ''
+    put:
+      operationId: tour_groups_update
+      description: Обновление информации о группе.
+      summary: Обновить группу
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroup'
+          description: ''
+    patch:
+      operationId: tour_groups_partial_update
+      description: Частичное обновление информации о группе.
+      summary: Частичное обновление группы
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTourGroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTourGroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTourGroupRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroup'
+          description: ''
+    delete:
+      operationId: tour_groups_destroy
+      description: Удаление группы (распускает группу).
+      summary: Удалить группу
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /tour/groups/{id}/dismiss/:
+    post:
+      operationId: tour_groups_dismiss_create
+      description: Распустить группу
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroup'
+          description: ''
+  /tour/groups/{id}/stats/:
+    get:
+      operationId: tour_groups_stats_retrieve
+      description: Статистика группы
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroup'
+          description: ''
+  /tour/invite/{invite_code}/:
+    get:
+      operationId: tour_invite_retrieve
+      description: Получение информации о группе для вступления.
+      summary: Информация о группе по коду
+      parameters:
+      - in: path
+        name: invite_code
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupDetail'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+          description: ''
+  /tour/location/update/:
+    post:
+      operationId: tour_location_update_create
+      description: Обновление местоположения участника тура. Автоматически проверяет
+        нарушение зон и отправляет уведомления.
+      summary: Обновить местоположение
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                longitude:
+                  type: number
+                  format: float
+              required:
+              - latitude
+              - longitude
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+          description: ''
+  /tour/members/:
+    get:
+      operationId: tour_members_list
+      description: Получение списка участников группы.
+      summary: Список участников
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTourGroupMemberListList'
+          description: ''
+    post:
+      operationId: tour_members_create
+      description: Добавление участника в группу (только агент).
+      summary: Добавить участника
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+  /tour/members/{id}/:
+    get:
+      operationId: tour_members_retrieve
+      description: Получение информации об участнике.
+      summary: Детали участника
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+    put:
+      operationId: tour_members_update
+      description: CRUD для участников группы.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+    patch:
+      operationId: tour_members_partial_update
+      description: CRUD для участников группы.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTourGroupMemberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTourGroupMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTourGroupMemberRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+    delete:
+      operationId: tour_members_destroy
+      description: CRUD для участников группы.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /tour/members/{id}/accept/:
+    post:
+      operationId: tour_members_accept_create
+      description: Принять участника (только агент)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+  /tour/members/{id}/leave/:
+    post:
+      operationId: tour_members_leave_create
+      description: Покинуть группу
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+  /tour/members/{id}/remove/:
+    post:
+      operationId: tour_members_remove_create
+      description: Удалить участника из группы
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+  /tour/members/join_by_code/:
+    post:
+      operationId: tour_members_join_by_code_create
+      description: Вступить в группу по коду приглашения
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourGroupMemberRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourGroupMember'
+          description: ''
+  /tour/sessions/:
+    get:
+      operationId: tour_sessions_list
+      description: Получение списка сессий группы.
+      summary: Список сессий
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTourSessionList'
+          description: ''
+    post:
+      operationId: tour_sessions_create
+      description: Создание новой сессии тура. Только для тур-агента.
+      summary: Создать сессию
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSession'
+          description: ''
+  /tour/sessions/{id}/:
+    get:
+      operationId: tour_sessions_retrieve
+      description: Получение информации о сессии.
+      summary: Детали сессии
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSessionDetail'
+          description: ''
+    put:
+      operationId: tour_sessions_update
+      description: CRUD для сессий тура.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSession'
+          description: ''
+    patch:
+      operationId: tour_sessions_partial_update
+      description: CRUD для сессий тура.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTourSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTourSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTourSessionRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSession'
+          description: ''
+    delete:
+      operationId: tour_sessions_destroy
+      description: CRUD для сессий тура.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+  /tour/sessions/{id}/cancel/:
+    post:
+      operationId: tour_sessions_cancel_create
+      description: Отменить тур
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSession'
+          description: ''
+  /tour/sessions/{id}/complete/:
+    post:
+      operationId: tour_sessions_complete_create
+      description: Завершить тур
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSession'
+          description: ''
+  /tour/sessions/{id}/start/:
+    post:
+      operationId: tour_sessions_start_create
+      description: Начать тур
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourSessionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSession'
+          description: ''
+  /tour/sessions/{id}/violations/:
+    get:
+      operationId: tour_sessions_violations_retrieve
+      description: Получить нарушения за сессию
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourSession'
+          description: ''
+  /tour/zones/:
+    get:
+      operationId: tour_zones_list
+      description: Получение списка зон группы.
+      summary: Список зон
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTourZoneListList'
+          description: ''
+    post:
+      operationId: tour_zones_create
+      description: Создание новой зоны для группы. Только для тур-агента.
+      summary: Создать зону
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourZoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourZoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourZoneRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourZone'
+          description: ''
+  /tour/zones/{id}/:
+    get:
+      operationId: tour_zones_retrieve
+      description: Получение информации о зоне.
+      summary: Детали зоны
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourZone'
+          description: ''
+    put:
+      operationId: tour_zones_update
+      description: Обновление зоны.
+      summary: Обновить зону
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TourZoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TourZoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TourZoneRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourZone'
+          description: ''
+    patch:
+      operationId: tour_zones_partial_update
+      description: Частичное обновление зоны.
+      summary: Частичное обновление зоны
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTourZoneRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTourZoneRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTourZoneRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourZone'
+          description: ''
+    delete:
+      operationId: tour_zones_destroy
+      description: Удаление зоны.
+      summary: Удалить зону
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tour
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - BearerAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    AlertSignal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sender_user:
+          allOf:
+          - $ref: '#/components/schemas/SimpleUser'
+          readOnly: true
+        latitude:
+          type: number
+          format: double
+          readOnly: true
+          title: Широта
+        longitude:
+          type: number
+          format: double
+          readOnly: true
+          title: Долгота
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AlertSignalStatusEnum'
+          readOnly: true
+          title: Статус
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+      required:
+      - created_at
+      - id
+      - latitude
+      - longitude
+      - sender_user
+      - status
+    AlertSignalAnswer:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        alert_signal_id:
+          type: integer
+          readOnly: true
+        responder_user:
+          allOf:
+          - $ref: '#/components/schemas/SimpleUser'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+      required:
+      - alert_signal_id
+      - created_at
+      - id
+      - responder_user
+    AlertSignalAnswerCreateRequest:
+      type: object
+      description: |-
+        Serializer для ответа на Alert-сигнал.
+        Вход: { alert_signal_id }
+      properties:
+        alert_signal_id:
+          type: integer
+      required:
+      - alert_signal_id
+    AlertSignalCreateRequest:
+      type: object
+      description: |-
+        Serializer для создания Alert-сигнала.
+        Вход: { latitude, longitude }
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+      - latitude
+      - longitude
+    AlertSignalStatusEnum:
+      enum:
+      - pending
+      - answered
+      - no_answer
+      - inactive
+      - resolved
+      type: string
+      description: |-
+        * `pending` - pending
+        * `answered` - answered
+        * `no_answer` - no_answer
+        * `inactive` - inactive
+        * `resolved` - resolved
+    AvatarUpdateRequest:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        avatar:
+          type: string
+          format: binary
+      required:
+      - avatar
+      - user_id
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        from_user:
+          allOf:
+          - $ref: '#/components/schemas/SimpleUser'
+          readOnly: true
+        from_profile:
+          type: string
+          readOnly: true
+        to_user:
+          allOf:
+          - $ref: '#/components/schemas/SimpleUser'
+          readOnly: true
+        to_profile:
+          type: string
+          readOnly: true
+        is_accepted:
+          type: boolean
+          readOnly: true
+          title: Принята
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+      required:
+      - created_at
+      - from_profile
+      - from_user
+      - id
+      - is_accepted
+      - to_profile
+      - to_user
+    ContactCreateRequest:
+      type: object
+      description: |-
+        Serializer для создания запроса в контакты по identifier профиля.
+        При создании from_user берётся из request.user.
+        Вход: { "identifier": "ABC123" }
+      properties:
+        identifier:
+          type: string
+          minLength: 1
+          maxLength: 64
+      required:
+      - identifier
+    ContactLocationItem:
+      type: object
+      description: |-
+        Формат выдачи для места контакта
+        { contact_id, first_name, last_name, avatar, latitude, longitude, is_online, last_seen }
+      properties:
+        contact_id:
+          type: integer
+        first_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+      required:
+      - avatar
+      - contact_id
+      - first_name
+      - last_name
+      - latitude
+      - longitude
+    EmailTokenObtainPairRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    Geofence:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        children:
+          type: array
+          items:
+            type: integer
+        polygon: {}
+        arrive_time:
+          type: string
+          format: time
+          nullable: true
+        depart_time:
+          type: string
+          format: time
+          nullable: true
+        remind_minutes: {}
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - children
+      - created_at
+      - id
+      - polygon
+    GeofenceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        children:
+          type: array
+          items:
+            type: integer
+        polygon: {}
+        arrive_time:
+          type: string
+          format: time
+          nullable: true
+        depart_time:
+          type: string
+          format: time
+          nullable: true
+        remind_minutes: {}
+        is_active:
+          type: boolean
+      required:
+      - children
+      - polygon
+    Location:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          readOnly: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+          title: Широта
+        longitude:
+          type: number
+          format: double
+          nullable: true
+          title: Долгота
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+      required:
+      - updated_at
+      - user_id
+    LocationUpdateRequest:
+      type: object
+      description: |-
+        Для обновления координат.
+        Принимает:
+          - latitude
+          - longitude
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+      - latitude
+      - longitude
+    PaginatedAlertSignalAnswerList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertSignalAnswer'
+    PaginatedAlertSignalList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertSignal'
+    PaginatedContactList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contact'
+    PaginatedGeofenceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Geofence'
+    PaginatedServiceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
+    PaginatedServicePointList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServicePoint'
+    PaginatedSosSignalList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SosSignal'
+    PaginatedTourGroupList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourGroup'
+    PaginatedTourGroupMemberListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourGroupMemberList'
+    PaginatedTourSessionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourSession'
+    PaginatedTourZoneListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourZoneList'
+    PatchedGeofenceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        children:
+          type: array
+          items:
+            type: integer
+        polygon: {}
+        arrive_time:
+          type: string
+          format: time
+          nullable: true
+        depart_time:
+          type: string
+          format: time
+          nullable: true
+        remind_minutes: {}
+        is_active:
+          type: boolean
+    PatchedTourGroupMemberRequest:
+      type: object
+      description: Сериализатор участника группы
+      properties:
+        user_id:
+          type: integer
+          writeOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6ddEnum'
+          title: Статус
+    PatchedTourGroupRequest:
+      type: object
+      description: Сериализатор группы туристов
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Название группы
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+        is_active:
+          type: boolean
+          title: Активна
+    PatchedTourSessionRequest:
+      type: object
+      description: Сериализатор сессии тура
+      properties:
+        group:
+          type: string
+          format: uuid
+          title: Группа
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status80dEnum'
+          title: Статус
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Планируемая длительность (мин)
+    PatchedTourZoneRequest:
+      type: object
+      description: Сериализатор зоны тура
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Название зоны
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+        polygon:
+          title: Полигон зоны
+          description: 'Массив точек [{lat: number, lng: number}, ...]'
+        center_lat:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          title: Широта центра
+        center_lng:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          title: Долгота центра
+        is_active:
+          type: boolean
+          title: Активна
+    ProfileDetail:
+      type: object
+      properties:
+        user_email:
+          type: string
+          format: email
+          readOnly: true
+        is_gov:
+          type: boolean
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+          title: Имя
+        last_name:
+          type: string
+          readOnly: true
+          title: Фамилия
+        birth_date:
+          type: string
+          format: date
+          readOnly: true
+          title: Дата рождения
+        city:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Город
+        street:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Улица
+        house_number:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Номер дома
+        apartment_number:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Номер квартиры
+        med_info:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Медицинская информация
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+          title: Роль
+        phone_number:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Номер телефона
+        avatar:
+          type: string
+          format: uri
+          readOnly: true
+          nullable: true
+          title: Миниатюра
+        identifier:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Идентификатор
+        service:
+          type: string
+          readOnly: true
+        service_point:
+          type: string
+          readOnly: true
+      required:
+      - apartment_number
+      - avatar
+      - birth_date
+      - city
+      - first_name
+      - house_number
+      - identifier
+      - is_gov
+      - last_name
+      - med_info
+      - phone_number
+      - role
+      - service
+      - service_point
+      - street
+      - user_email
+    ProfileMini:
+      type: object
+      properties:
+        user:
+          allOf:
+          - $ref: '#/components/schemas/SimpleUser'
+          readOnly: true
+        first_name:
+          type: string
+          title: Имя
+          maxLength: 255
+        last_name:
+          type: string
+          title: Фамилия
+          maxLength: 255
+        identifier:
+          type: string
+          nullable: true
+          title: Идентификатор
+          maxLength: 6
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: Миниатюра
+      required:
+      - first_name
+      - last_name
+      - user
+    ProfileMiniRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          minLength: 1
+          title: Имя
+          maxLength: 255
+        last_name:
+          type: string
+          minLength: 1
+          title: Фамилия
+          maxLength: 255
+        identifier:
+          type: string
+          nullable: true
+          title: Идентификатор
+          maxLength: 6
+        avatar:
+          type: string
+          format: binary
+          nullable: true
+          title: Миниатюра
+      required:
+      - first_name
+      - last_name
+    RegistrationRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        birth_date:
+          type: string
+          format: date
+        city:
+          type: string
+          maxLength: 400
+        street:
+          type: string
+          maxLength: 400
+        house_number:
+          type: string
+          maxLength: 400
+        apartment_number:
+          type: string
+          maxLength: 400
+        med_info:
+          type: string
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          default: user
+        phone_number:
+          type: string
+          maxLength: 20
+      required:
+      - birth_date
+      - email
+      - first_name
+      - last_name
+      - password
+    RoleEnum:
+      enum:
+      - user
+      - tour_agency
+      - tourist
+      - parent
+      - child
+      type: string
+      description: |-
+        * `user` - user
+        * `tour_agency` - tour_agency
+        * `tourist` - tourist
+        * `parent` - parent
+        * `child` - child
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          title: Название
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServicePoint'
+          readOnly: true
+      required:
+      - id
+      - name
+      - points
+    ServicePoint:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        service:
+          type: string
+          readOnly: true
+        additional:
+          type: string
+          readOnly: true
+          nullable: true
+          title: Дополнительно (необязательно)
+        city:
+          type: string
+          readOnly: true
+          title: Город
+        street:
+          type: string
+          readOnly: true
+          title: Улица
+        house_number:
+          type: string
+          readOnly: true
+          title: Номер здания
+      required:
+      - additional
+      - city
+      - house_number
+      - id
+      - service
+      - street
+    SimpleUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+      required:
+      - email
+      - id
+    SimpleUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+      required:
+      - email
+    SosSignal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sender_user:
+          allOf:
+          - $ref: '#/components/schemas/SimpleUser'
+          readOnly: true
+        service:
+          type: integer
+          readOnly: true
+          nullable: true
+        service_point:
+          type: integer
+          readOnly: true
+          nullable: true
+        service_name:
+          type: string
+          readOnly: true
+        service_point_name:
+          type: string
+          readOnly: true
+        latitude:
+          type: number
+          format: double
+          readOnly: true
+          title: Широта
+        longitude:
+          type: number
+          format: double
+          readOnly: true
+          title: Долгота
+        status:
+          allOf:
+          - $ref: '#/components/schemas/SosSignalStatusEnum'
+          readOnly: true
+          title: Статус
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+      required:
+      - created_at
+      - id
+      - latitude
+      - longitude
+      - sender_user
+      - service
+      - service_name
+      - service_point
+      - service_point_name
+      - status
+    SosSignalCreateRequest:
+      type: object
+      description: |-
+        Serializer для создания SOS-сигнала.
+        Вход: { latitude, longitude, service_id?, service_point_id? }
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        service_id:
+          type: integer
+          nullable: true
+        service_point_id:
+          type: integer
+          nullable: true
+      required:
+      - latitude
+      - longitude
+    SosSignalStatusEnum:
+      enum:
+      - pending
+      - answered
+      - inactive
+      - resolved
+      - 'false'
+      type: string
+      description: |-
+        * `pending` - pending
+        * `answered` - answered
+        * `inactive` - inactive
+        * `resolved` - resolved
+        * `false` - false
+    Status6ddEnum:
+      enum:
+      - pending
+      - active
+      - left
+      - removed
+      type: string
+      description: |-
+        * `pending` - Ожидает подтверждения
+        * `active` - Активный участник
+        * `left` - Покинул группу
+        * `removed` - Удален из группы
+    Status80dEnum:
+      enum:
+      - draft
+      - active
+      - completed
+      - cancelled
+      type: string
+      description: |-
+        * `draft` - Черновик
+        * `active` - Активный
+        * `completed` - Завершен
+        * `cancelled` - Отменен
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TourGroup:
+      type: object
+      description: Сериализатор группы туристов
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        agent:
+          allOf:
+          - $ref: '#/components/schemas/ProfileMini'
+          readOnly: true
+        name:
+          type: string
+          title: Название группы
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+        invite_code:
+          type: string
+          readOnly: true
+          title: Код приглашения
+        invite_link:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          title: Активна
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+        active_members_count:
+          type: string
+          readOnly: true
+        pending_members_count:
+          type: string
+          readOnly: true
+        zones_count:
+          type: string
+          readOnly: true
+        has_active_session:
+          type: string
+          readOnly: true
+      required:
+      - active_members_count
+      - agent
+      - created_at
+      - has_active_session
+      - id
+      - invite_code
+      - invite_link
+      - name
+      - pending_members_count
+      - updated_at
+      - zones_count
+    TourGroupCreate:
+      type: object
+      description: Сериализатор создания группы
+      properties:
+        name:
+          type: string
+          title: Название группы
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+      required:
+      - name
+    TourGroupCreateRequest:
+      type: object
+      description: Сериализатор создания группы
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Название группы
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+      required:
+      - name
+    TourGroupDetail:
+      type: object
+      description: Сериализатор группы с деталями
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        agent:
+          allOf:
+          - $ref: '#/components/schemas/ProfileMini'
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          title: Название группы
+        description:
+          type: string
+          readOnly: true
+          title: Описание
+        invite_code:
+          type: string
+          readOnly: true
+          title: Код приглашения
+        invite_link:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Активна
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата обновления
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourGroupMemberList'
+          readOnly: true
+        zones:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourZoneList'
+          readOnly: true
+        active_session:
+          allOf:
+          - $ref: '#/components/schemas/TourSession'
+          readOnly: true
+      required:
+      - active_session
+      - agent
+      - created_at
+      - description
+      - id
+      - invite_code
+      - invite_link
+      - is_active
+      - members
+      - name
+      - updated_at
+      - zones
+    TourGroupMember:
+      type: object
+      description: Сериализатор участника группы
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/ProfileMini'
+          readOnly: true
+        group:
+          type: string
+          format: uuid
+          readOnly: true
+          title: Группа
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6ddEnum'
+          title: Статус
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата вступления
+        left_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Дата выхода
+      required:
+      - group
+      - id
+      - joined_at
+      - left_at
+      - user
+    TourGroupMemberList:
+      type: object
+      description: Сериализатор участника группы для списка
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/ProfileMini'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6ddEnum'
+          readOnly: true
+          title: Статус
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата вступления
+        left_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Дата выхода
+      required:
+      - id
+      - joined_at
+      - left_at
+      - status
+      - user
+    TourGroupMemberRequest:
+      type: object
+      description: Сериализатор участника группы
+      properties:
+        user_id:
+          type: integer
+          writeOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status6ddEnum'
+          title: Статус
+      required:
+      - user_id
+    TourGroupRequest:
+      type: object
+      description: Сериализатор группы туристов
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Название группы
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+        is_active:
+          type: boolean
+          title: Активна
+      required:
+      - name
+    TourSession:
+      type: object
+      description: Сериализатор сессии тура
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        group:
+          type: string
+          format: uuid
+          title: Группа
+        group_name:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status80dEnum'
+          title: Статус
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Время начала
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Время завершения
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Планируемая длительность (мин)
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+        elapsed_minutes:
+          type: string
+          readOnly: true
+        remaining_minutes:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - elapsed_minutes
+      - ended_at
+      - group
+      - group_name
+      - id
+      - remaining_minutes
+      - started_at
+    TourSessionDetail:
+      type: object
+      description: Сериализатор сессии тура с деталями
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        group:
+          type: string
+          format: uuid
+          readOnly: true
+          title: Группа
+        group_name:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status80dEnum'
+          readOnly: true
+          title: Статус
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Время начала
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Время завершения
+        duration_minutes:
+          type: integer
+          readOnly: true
+          title: Планируемая длительность (мин)
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+        zones:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourZoneList'
+          readOnly: true
+        members_count:
+          type: string
+          readOnly: true
+        violations_count:
+          type: string
+          readOnly: true
+        elapsed_minutes:
+          type: string
+          readOnly: true
+        remaining_minutes:
+          type: string
+          readOnly: true
+      required:
+      - created_at
+      - duration_minutes
+      - elapsed_minutes
+      - ended_at
+      - group
+      - group_name
+      - id
+      - members_count
+      - remaining_minutes
+      - started_at
+      - status
+      - violations_count
+      - zones
+    TourSessionRequest:
+      type: object
+      description: Сериализатор сессии тура
+      properties:
+        group:
+          type: string
+          format: uuid
+          title: Группа
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status80dEnum'
+          title: Статус
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          title: Планируемая длительность (мин)
+      required:
+      - group
+    TourZone:
+      type: object
+      description: Сериализатор зоны тура
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        group:
+          type: string
+          format: uuid
+          readOnly: true
+          title: Группа
+        name:
+          type: string
+          title: Название зоны
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+        polygon:
+          title: Полигон зоны
+          description: 'Массив точек [{lat: number, lng: number}, ...]'
+        center_lat:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          title: Широта центра
+        center_lng:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          title: Долгота центра
+        is_active:
+          type: boolean
+          title: Активна
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+      required:
+      - center_lat
+      - center_lng
+      - created_at
+      - group
+      - id
+      - name
+      - polygon
+    TourZoneList:
+      type: object
+      description: Сериализатор зоны для списка
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          title: Название зоны
+        description:
+          type: string
+          readOnly: true
+          title: Описание
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Активна
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата создания
+      required:
+      - created_at
+      - description
+      - id
+      - is_active
+      - name
+    TourZoneRequest:
+      type: object
+      description: Сериализатор зоны тура
+      properties:
+        name:
+          type: string
+          minLength: 1
+          title: Название зоны
+          maxLength: 255
+        description:
+          type: string
+          title: Описание
+        polygon:
+          title: Полигон зоны
+          description: 'Массив точек [{lat: number, lng: number}, ...]'
+        center_lat:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          title: Широта центра
+        center_lng:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          title: Долгота центра
+        is_active:
+          type: boolean
+          title: Активна
+      required:
+      - center_lat
+      - center_lng
+      - name
+      - polygon
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

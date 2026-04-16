@@ -21,7 +21,11 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
 
     def __str__(self):
-        return f"{self.email} {f'(Госслужащий в {self.service_point if self.service_point else "не указано"})' if self.is_gov else '(Гражданский)'}"
+        if self.is_gov:
+            sp_info = f"(Госслужащий в {self.service_point})" if self.service_point else "(Госслужащий, место не указано)"
+        else:
+            sp_info = "(Гражданский)"
+        return f"{self.email} {sp_info}"
     
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -54,5 +58,10 @@ class Profile(models.Model):
             while Profile.objects.filter(identifier=new_id).exists():
                 new_id = generate_simple_id()
             self.identifier = new_id
+
+        # Синхронизируем роль с User
+        if self.user:
+            self.user.role = self.role
+            self.user.save(update_fields=['role'])
 
         super().save(*args, **kwargs)

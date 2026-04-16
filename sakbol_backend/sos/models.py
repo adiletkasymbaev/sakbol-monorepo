@@ -85,47 +85,50 @@ class Geofence(models.Model):
         related_name="geofences",
         verbose_name="Родитель-владелец"
     )
-    child = models.ForeignKey(
+    children = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
         related_name="geofences_as_child",
-        verbose_name="Ребёнок"
+        verbose_name="Дети",
     )
 
     name = models.CharField(max_length=120, default="Зона")
-    polygon = models.JSONField()  # [{lat, lng}, ...] минимум 3 точки
+    polygon = models.JSONField()
 
-    # Окно ожиданий (простая версия: ежедневно)
-    arrive_time = models.TimeField(null=True, blank=True)   # "должен быть в зоне к"
-    depart_time = models.TimeField(null=True, blank=True)   # "должен выйти из зоны к"
-
-    # Минуты, через сколько напоминать (2/5/10/30/60/120)
-    remind_minutes = models.JSONField(default=list)  # [2,5,10,30,60,120]
-
+    arrive_time = models.TimeField(null=True, blank=True)
+    depart_time = models.TimeField(null=True, blank=True)
+    remind_minutes = models.JSONField(default=list)
     is_active = models.BooleanField(default=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=["parent", "child", "is_active"]),
+            models.Index(fields=["parent", "is_active"]),
         ]
 
     def __str__(self):
-        return f"{self.name} ({self.parent_id} -> {self.child_id})"
-    
+        return f"{self.name} (parent={self.parent_id})"
+
+
 class GeofenceState(models.Model):
-    geofence = models.OneToOneField(Geofence, on_delete=models.CASCADE, related_name="state")
+    geofence = models.ForeignKey(
+        Geofence,
+        on_delete=models.CASCADE,
+        related_name="states"
+    )
+    child = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="geofence_states"
+    )
 
     is_inside = models.BooleanField(default=False)
     last_entered_at = models.DateTimeField(null=True, blank=True)
     last_exited_at = models.DateTimeField(null=True, blank=True)
 
-    # какие пороги (минуты) уже отправили сегодня для arrive/depart
-    arrive_notified = models.JSONField(default=list)  # [2, 5, ...]
+    arrive_notified = models.JSONField(default=list)
     depart_notified = models.JSONField(default=list)
-
-    # чтобы сбрасывать “сегодняшние” напоминания
     notify_date = models.DateField(null=True, blank=True)
-
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("geofence", "child")]

@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from accounts.models import Profile, User
 from accounts.serializers import ProfileMiniSerializer, SimpleUserSerializer
-from .models import Contact, Location, Geofence
+from .models import Contact, Location, Geofence, SosSignal, AlertSignal, AlertSignalAnswer
 from .permissions import parent_has_child_contact
 from .geofence_service import check_geofences_on_location_update
 
@@ -154,10 +154,19 @@ class ContactLocationItemSerializer(serializers.Serializer):
     longitude = serializers.FloatField(allow_null=True)
 
 class GeofenceSerializer(serializers.ModelSerializer):
+    children = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all(),
+    )
+
     class Meta:
         model = Geofence
-        fields = ("id","name","child","polygon","arrive_time","depart_time","remind_minutes","is_active","created_at")
-        read_only_fields = ("id","created_at")
+        fields = (
+            "id", "name", "children", "polygon",
+            "arrive_time", "depart_time", "remind_minutes",
+            "is_active", "created_at",
+        )
+        read_only_fields = ("id", "created_at")
 
     def validate_polygon(self, value):
         if not isinstance(value, list) or len(value) < 3:
@@ -169,12 +178,167 @@ class GeofenceSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request = self.context["request"]
-        child = attrs.get("child") or getattr(self.instance, "child", None)
+        children = attrs.get("children") or (
+            list(self.instance.children.all()) if self.instance else []
+        )
 
-        if not parent_has_child_contact(request.user, child):
-            raise serializers.ValidationError("Ребёнок не находится в ваших контактах.")
+
+        for child in children:
+            if not parent_has_child_contact(request.user, child):
+                raise serializers.ValidationError(
+                    f"Пользователь {child.id} не находится в ваших контактах."
+                )
         return attrs
 
     def create(self, validated_data):
+        children = validated_data.pop("children", [])
         validated_data["parent"] = self.context["request"].user
-        return super().create(validated_data)
+        geofence = super().create(validated_data)
+        geofence.children.set(children)
+        return geofence
+
+    def update(self, instance, validated_data):
+        children = validated_data.pop("children", None)
+        geofence = super().update(instance, validated_data)
+        if children is not None:
+            geofence.children.set(children)
+        return geofence
+
+
+# ==================== SOS & Alert Serializers ====================
+
+class SosSignalSerializer(serializers.ModelSerializer):
+    sender_user = SimpleUserSerializer(read_only=True)
+    service_name = serializers.SerializerMethodField()
+    service_point_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SosSignal
+        fields = (
+            "id", "sender_user", "service", "service_point",
+            "service_name", "service_point_name",
+            "latitude", "longitude", "status", "created_at"
+        )
+        read_only_fields = fields
+
+    def get_service_name(self, obj):
+        return obj.service.name if obj.service else None
+
+    def get_service_point_name(self, obj):
+        return obj.service_point.name if obj.service_point else None
+
+
+class SosSignalCreateSerializer(serializers.Serializer):
+    """
+    Serializer для создания SOS-сигнала.
+    Вход: { latitude, longitude, service_id?, service_point_id? }
+    """
+    latitude = serializers.FloatField()
+    longitude = serializers.FloatField()
+    service_id = serializers.IntegerField(required=False, allow_null=True)
+    service_point_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_service_id(self, value):
+        if value is None:
+            return None
+        from gov.models import Service
+        try:
+            Service.objects.get(pk=value)
+        except Service.DoesNotExist:
+            raise serializers.ValidationError("Сервис не найден.")
+        return value
+
+    def validate_service_point_id(self, value):
+        if value is None:
+            return None
+        from gov.models import ServicePoint
+        try:
+            ServicePoint.objects.get(pk=value)
+        except ServicePoint.DoesNotExist:
+            raise serializers.ValidationError("Точка сервиса не найдена.")
+        return value
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        from gov.models import Service, ServicePoint
+
+        service = None
+        if validated_data.get("service_id"):
+            service = Service.objects.get(pk=validated_data["service_id"])
+
+        service_point = None
+        if validated_data.get("service_point_id"):
+            service_point = ServicePoint.objects.get(pk=validated_data["service_point_id"])
+
+        sos_signal = SosSignal.objects.create(
+            sender_user=request.user,
+            latitude=validated_data["latitude"],
+            longitude=validated_data["longitude"],
+            service=service,
+            service_point=service_point,
+        )
+        return sos_signal
+
+
+class AlertSignalSerializer(serializers.ModelSerializer):
+    sender_user = SimpleUserSerializer(read_only=True)
+
+    class Meta:
+        model = AlertSignal
+        fields = (
+            "id", "sender_user", "latitude", "longitude",
+            "status", "created_at"
+        )
+        read_only_fields = fields
+
+
+class AlertSignalCreateSerializer(serializers.Serializer):
+    """
+    Serializer для создания Alert-сигнала.
+    Вход: { latitude, longitude }
+    """
+    latitude = serializers.FloatField()
+    longitude = serializers.FloatField()
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        alert_signal = AlertSignal.objects.create(
+            sender_user=request.user,
+            latitude=validated_data["latitude"],
+            longitude=validated_data["longitude"],
+        )
+        return alert_signal
+
+
+class AlertSignalAnswerSerializer(serializers.ModelSerializer):
+    responder_user = SimpleUserSerializer(read_only=True)
+    alert_signal_id = serializers.IntegerField(source='alert_signal.id', read_only=True)
+
+    class Meta:
+        model = AlertSignalAnswer
+        fields = ("id", "alert_signal_id", "responder_user", "created_at")
+        read_only_fields = fields
+
+
+class AlertSignalAnswerCreateSerializer(serializers.Serializer):
+    """
+    Serializer для ответа на Alert-сигнал.
+    Вход: { alert_signal_id }
+    """
+    alert_signal_id = serializers.IntegerField()
+
+    def validate_alert_signal_id(self, value):
+        try:
+            AlertSignal.objects.get(pk=value)
+        except AlertSignal.DoesNotExist:
+            raise serializers.ValidationError("Сигнал не найден.")
+        return value
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        alert_signal = AlertSignal.objects.get(pk=validated_data["alert_signal_id"])
+        answer = AlertSignalAnswer.objects.create(
+            alert_signal=alert_signal,
+            responder_user=request.user,
+        )
+        return answer

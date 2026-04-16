@@ -35,6 +35,9 @@ VAPID_PRIVATE_KEY = str(BASE_DIR / "private_key.pem")
 VAPID_PUBLIC_KEY = "BFA8SvteWJDoYwmF4wfJLTIfZRAmr7_EH6cXW2QJIcQ0-yXmzU5lpV6JocGh5CGQOOjKhc9yLuoFRu7-tEZedNA"
 VAPID_ADMIN_EMAIL = "mailto:adikokey@mail.ru"
 
+# FIREBASE CLOUD MESSAGING
+FIREBASE_CREDENTIALS = str(BASE_DIR / "firebase_config.json")
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -53,7 +56,8 @@ INSTALLED_APPS = [
     'accounts',
     'gov',
     'sos',
-    'push'
+    'push',
+    'tour'
 ]
 
 MIDDLEWARE = [
@@ -148,10 +152,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS  
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",          # React/Vite dev
-#     "http://localhost:5173",          # Vite default
-# ]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",          # React/Vite dev
+    "http://localhost:5173",          # Vite default
+]
 
 CORS_ALLOW_ALL_ORIGINS = True
 

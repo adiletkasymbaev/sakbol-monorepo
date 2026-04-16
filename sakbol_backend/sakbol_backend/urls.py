@@ -10,6 +10,7 @@ urlpatterns = [
     path('general/', include('sos.urls')),
     path('gov/', include('gov.urls')),
     path('push/', include('push.urls')),
+    path('tour/', include('tour.urls')),
 ]
 
 # Spectacular

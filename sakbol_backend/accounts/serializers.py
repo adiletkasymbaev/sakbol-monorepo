@@ -52,9 +52,11 @@ class RegistrationSerializer(serializers.Serializer):
                 'house_number', 'apartment_number', 'med_info', 'role', 'phone_number'
             )
         }
+        # Получаем роль из profile_data для синхронизации с User
+        role = profile_data.get('role', ProfileRole.USER)
 
         with transaction.atomic():
-            user = User.objects.create(email=email)
+            user = User.objects.create(email=email, role=role)
             user.set_password(password)
             user.save()
 
