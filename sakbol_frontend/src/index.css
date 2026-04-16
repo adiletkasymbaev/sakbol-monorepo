@@ -11,7 +11,7 @@
 }
 
 .page-wrapper {
-  @apply relative min-h-screen h-full p-4 w-full;
+  @apply relative min-h-screen h-full p-4 w-full pb-32;
 }
 
 .page-wrapper-no-padding {

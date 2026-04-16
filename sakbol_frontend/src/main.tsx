@@ -7,9 +7,11 @@ import { HeroUIProvider, ToastProvider } from "@heroui/react";
 import "./i18n";
 import { setupAuthInterceptor } from "./shared/services/interceptors.ts";
 import { registerSw } from "./modules/push/registerSw.ts";
+import { testPush } from "./shared/utils/testPush.ts";
 
 setupAuthInterceptor()
 registerSw()
+testPush() // Для отладки
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

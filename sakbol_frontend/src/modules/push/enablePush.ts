@@ -1,91 +1,4 @@
-import api from "../../shared/services/axios";
-import { pushService } from "../../shared/services/pushService";
-import { registerSw } from "./registerSw";
-
-type PushSubDTO = {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-};
-
-function urlBase64ToUint8Array(base64Url: string) {
-  const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
-  const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-  return outputArray;
-}
-
-async function getVapidPublicKey(): Promise<string> {
-  // Должно вернуть { publicKey: "B...." }
-  const { data } = await api.get("/push/public-key/");
-  if (!data?.publicKey || typeof data.publicKey !== "string") {
-    throw new Error("Backend did not return publicKey");
-  }
-  return data.publicKey;
-}
-
-function subToDto(sub: PushSubscription): PushSubDTO {
-  const json = sub.toJSON();
-  return {
-    endpoint: json.endpoint!,
-    p256dh: json.keys!.p256dh!,
-    auth: json.keys!.auth!,
-  };
-}
-
-async function ensureSubscribed(vapidPublicKey: string): Promise<PushSubDTO> {
-  if (!("serviceWorker" in navigator)) throw new Error("Service Worker not supported");
-  if (!("PushManager" in window)) throw new Error("Push API not supported");
-
-  // гарантируем, что SW зарегистрирован
-  await registerSw();
-
-  // ждём активный SW
-  const reg = await navigator.serviceWorker.ready;
-
-  // 1) если подписка уже есть — проверим, подходит ли она под текущий public key
-  const existing = await reg.pushManager.getSubscription();
-  if (existing) {
-    try {
-      // Проверка: совпадает ли applicationServerKey (VAPID public key)
-      // options.applicationServerKey может быть ArrayBuffer/Uint8Array
-      const opts = existing.options?.applicationServerKey;
-      if (opts) {
-        const a = new Uint8Array(
-          opts instanceof ArrayBuffer ? opts : (opts as ArrayBufferLike)
-        );
-        const b = urlBase64ToUint8Array(vapidPublicKey);
-
-        const same =
-          a.length === b.length && a.every((v, i) => v === b[i]);
-
-        if (!same) {
-          // ключ поменялся → старую подписку надо удалить
-          await existing.unsubscribe();
-        } else {
-          // ключ тот же → используем существующую подписку
-          return subToDto(existing);
-        }
-      } else {
-        // на всякий — если нет applicationServerKey, лучше пересоздать
-        await existing.unsubscribe();
-      }
-    } catch {
-      // если не смогли сравнить — пересоздадим
-      await existing.unsubscribe();
-    }
-  }
-
-  // 2) создаём новую подписку
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-  });
-
-  return subToDto(sub);
-}
+import { registerWebPush, registerServiceWorkerPush, requestNotificationPermission, getPushSubscriptionStatus } from "../../shared/services/pushService";
 
 /**
  * Вызови при старте приложения.
@@ -94,21 +7,50 @@ async function ensureSubscribed(vapidPublicKey: string): Promise<PushSubDTO> {
  * - если default/denied → пытаемся requestPermission() каждый заход (как ты хотел)
  */
 export async function enablePushOnSiteEnter() {
-  if (!("Notification" in window)) return;
+  if (!("Notification" in window)) {
+    console.warn("Notifications not supported");
+    return;
+  }
 
   try {
-    // хотим "спрашивать каждый заход", если не granted
-    if (Notification.permission !== "granted") {
-      const res = await Notification.requestPermission();
-      if (res !== "granted") return; // denied/default — выходим
+    // Проверяем текущее состояние
+    const status = await getPushSubscriptionStatus();
+    console.log("Push status check:", status);
+
+    // Если уже подписаны - выходим
+    if (status.permission === "granted" && status.subscribed) {
+      console.log("Push already enabled");
+      return;
     }
 
-    // permission granted
-    const vapidPublicKey = await getVapidPublicKey();
-    const dto = await ensureSubscribed(vapidPublicKey);
+    // хотим "спрашивать каждый заход", если не granted
+    if (status.permission !== "granted") {
+      const res = await requestNotificationPermission();
+      console.log("Permission result:", res);
+      if (res !== "granted") {
+        console.warn("Permission denied");
+        return;
+      }
+    }
 
-    // отправляем на бэк (у тебя pushService.subscribe)
-    await pushService.subscribe(dto);
+    // Пробуем зарегистрировать FCM Web Push (основной метод)
+    console.log("Attempting FCM registration...");
+    let success = await registerWebPush();
+    
+    if (success) {
+      console.log("FCM push enabled successfully");
+      return;
+    }
+
+    // Если не получилось, пробуем альтернативный метод с Service Worker
+    console.log("FCM failed, attempting Service Worker registration...");
+    success = await registerServiceWorkerPush();
+
+    if (success) {
+      console.log("Service Worker push enabled successfully");
+    } else {
+      console.warn("All push registration methods failed");
+    }
   } catch (e) {
     console.warn("enablePushOnSiteEnter error:", e);
   }

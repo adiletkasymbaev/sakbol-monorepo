@@ -72,6 +72,14 @@ export const setupAuthInterceptor = () => {
       // если не 401 — не трогаем
       if (status !== 401) return Promise.reject(error);
 
+      const url = originalRequest.url ?? "";
+
+      // НЕ пытаемся рефрешить запросы аутентификации (login, register)
+      // Если логин/регистрация вернули 401 — это нормальная ошибка, а не истокший токен
+      if (url.includes("/accounts/login") || url.includes("/accounts/register")) {
+        return Promise.reject(error);
+      }
+
       // уже ретраили — не зацикливаем
       if (originalRequest._retry) return Promise.reject(error);
       originalRequest._retry = true;
@@ -86,8 +94,7 @@ export const setupAuthInterceptor = () => {
       }
 
       // если это сам refresh endpoint — не пытаемся рефрешить рефреш
-      const url = originalRequest.url ?? "";
-      if (url.includes("/auth/refresh")) {
+      if (url.includes("/accounts/refresh")) {
         logout();
         hardRedirectToLogin();
         return Promise.reject(error);

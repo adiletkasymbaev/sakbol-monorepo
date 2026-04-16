@@ -1,6 +1,8 @@
 import { addToast } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
 import { ToastTypes } from "../enums/ToastTypes";
+import { getGeolocation } from "../utils/getGeolocation";
+import { alertsService, sosService } from "../services/sosService";
 
 type Options = {
   longPressMs?: number;
@@ -46,13 +48,31 @@ export function useSosButton(options: Options = {}) {
 
   const sendEmergencySos = async () => {
     try {
-      // request
+      await getGeolocation(
+        {
+          onSuccess: async (result) => {
+            await sosService.create({
+              latitude: result.latitude,
+              longitude: result.longitude,
+            });
 
-      addToast({
-        title: "Экстренный СОС-сигнал",
-        description: "Сигнал отправлен ближайшим мед. учреждениям",
-        color: "warning",
-      });
+            addToast({
+              title: "Экстренный СОС-сигнал",
+              description: "Сигнал отправлен ближайшим мед. учреждениям",
+              color: "warning",
+            });
+          },
+          onError: (error) => {
+            console.error("Геолокация ошибка:", error);
+            addToast({
+              title: ToastTypes.ERR,
+              description: "Не удалось получить геолокацию",
+              color: "danger",
+            });
+          },
+        },
+        { enableHighAccuracy: true }
+      );
     } catch (err) {
       console.error("Ошибка при отправке SOS:", err);
       addToast({
@@ -65,16 +85,34 @@ export function useSosButton(options: Options = {}) {
 
   const sendRegularSos = async () => {
     try {
-      addToast({
-        title: "СОС-сигнал",
-        description: "Сигнал отправлен вашим избранным контактам",
-        color: "warning",
-      });
+      await getGeolocation(
+        {
+          onSuccess: async (result) => {
+            await alertsService.create({
+              latitude: result.latitude,
+              longitude: result.longitude,
+            });
 
-      // request
+            addToast({
+              title: "СОС-сигнал",
+              description: "Сигнал отправлен вашим избранным контактам",
+              color: "warning",
+            });
 
-      setProgress(100);
-      window.setTimeout(() => setProgress(0), 300);
+            setProgress(100);
+            window.setTimeout(() => setProgress(0), 300);
+          },
+          onError: (error) => {
+            console.error("Геолокация ошибка:", error);
+            addToast({
+              title: ToastTypes.ERR,
+              description: "Не удалось получить геолокацию",
+              color: "danger",
+            });
+          },
+        },
+        { enableHighAccuracy: true }
+      );
     } catch (err) {
       console.error("Ошибка при отправке SOS regular:", err);
       addToast({

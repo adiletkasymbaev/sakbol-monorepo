@@ -1,3 +1,325 @@
 {
-    "test": "grisha"
+  "common": {
+    "loading": "Жүктөлүүдө...",
+    "save": "Сактоо",
+    "cancel": "Жокко чыгаруу",
+    "delete": "Өчүрүү",
+    "edit": "Оңдоо",
+    "confirm": "Ырастоо",
+    "back": "Артка",
+    "close": "Жабуу",
+    "copy": "Көчүрүү",
+    "copied": "Көчүрүлдү",
+    "error": "Ката",
+    "success": "Ийгилик",
+    "notSpecified": "Көрсөтүлгөн эмес"
+  },
+  "auth": {
+    "login": {
+      "title": "Аккаунтуңузга кириңиз",
+      "button": "Кирүү",
+      "tagline": "Кыргызстандагы эң ишенимдүү SOS тиркемеси"
+    },
+    "register": {
+      "title": "Катталуу",
+      "button": "Аккаунт түзүү"
+    },
+    "selectRole": {
+      "title": "Жакындарыңызды коргоо үчүн катталыңыз",
+      "button": "Улантуу",
+      "selectRole": "Ролду тандаңыз"
+    },
+    "form": {
+      "email": "Электрондук почта",
+      "emailPlaceholder": "Электрондук почтаңызды киргизиңиз",
+      "password": "Сырсөз",
+      "passwordPlaceholder": "Сырсөзүңүздү киргизиңиз",
+      "loginButton": "Кирүү",
+      "phone": "Телефон номери",
+      "phonePlaceholder": "Телефон номериңизди киргизиңиз",
+      "firstName": "Атыңыз",
+      "firstNamePlaceholder": "Атыңызды киргизиңиз",
+      "lastName": "Фамилияңыз",
+      "lastNamePlaceholder": "Фамилияңызды киргизиңиз",
+      "birthDate": "Туулган датасы",
+      "city": "Шаар",
+      "cityPlaceholder": "Шаарыңызды көрсөтүңүз",
+      "street": "Көчө",
+      "streetPlaceholder": "Көчөнүн аталышын киргизиңиз",
+      "houseNumber": "Үй номери",
+      "houseNumberPlaceholder": "Үй номерин киргизиңиз",
+      "apartmentNumber": "Батир номери (Милдеттүү эмес)",
+      "apartmentNumberPlaceholder": "Батир номерин киргизиңиз",
+      "healthInfo": "Ден соолук маалыматы (Милдеттүү эмес)",
+      "healthInfoPlaceholder": "Маалыматты киргизиңиз",
+      "confirm": "Ырастоо",
+      "back": "Артка"
+    },
+    "fallback": {
+      "hasAccount": "Аккаунтуңуз барбы?",
+      "login": "Кириңиз",
+      "noAccount": "Аккаунтуңуз жокпу?",
+      "register": "Катталыңыз"
+    }
+  },
+  "navbar": {
+    "home": "Башкы",
+    "groups": "Топтор",
+    "contacts": "Байланыштар",
+    "settings": "Жөндөөлөр",
+    "profile": "Профиль"
+  },
+  "profile": {
+    "title": "Профиль",
+    "logout": "Чыгуу",
+    "noName": "Аты жок",
+    "id": "ID",
+    "role": "Роль",
+    "contacts": "Байланыштар",
+    "email": "Электрондук почта",
+    "phone": "Телефон номери",
+    "personalInfo": "Жеке маалымат",
+    "birthDate": "Туулган датасы",
+    "medicalInfo": "Медициналык маалымат",
+    "address": "Дарек",
+    "city": "Шаар",
+    "street": "Көчө",
+    "apartment": "Батир"
+  },
+  "contacts": {
+    "title": "Байланыштар",
+    "tabs": {
+      "contacts": "Байланыштар",
+      "requests": "Арыздар"
+    },
+    "addContact": "Байланыш кошуу",
+    "accepted": {
+      "requestDeleted": "Сиз арызды өчүрдүңүз",
+      "error": "Ката",
+      "empty": "Байланыштар жок"
+    },
+    "pending": {
+      "outgoing": "Жөнөтүлгөн арыздар",
+      "requestDeleted": "Сиз арызды өчүрдүңүз",
+      "requestAccepted": "Арыз кабыл алынды",
+      "emptyOutgoing": "Жөнөтүлгөн арыздар жок",
+      "incoming": "Келген арыздар",
+      "emptyIncoming": "Келген арыздар жок",
+      "error": "Ката"
+    }
+  },
+  "map": {
+    "startTour": "🚶 Турду баштоо",
+    "yourContacts": "Сиздин байланыштарыңыз"
+  },
+  "settings": {
+    "title": "Жөндөөлөр",
+    "profile": "Профиль",
+    "keywords": "Ачкыч сөздөр",
+    "keywordsDescription": "SOS сигналды иштетүү үчүн төмөнкү сөздөрдү айта аласыз:",
+    "keywordsList": {
+      "help": "Жардам",
+      "sos": "SOS",
+      "sosSpelled": "Эс о эс",
+      "assistance": "Жардам",
+      "coffee": "Мен кофе каалайм",
+      "shop": "Мен дүкөнгө барам",
+      "work": "Жумушка качан?"
+    },
+    "language": "Тил",
+    "languagePlaceholder": "Тилди тандаңыз",
+    "privacyPolicy": "Купуялык саясаты",
+    "privacyPolicyContent": "Купуялык саясатынын тексти бул жерде болот..."
+  },
+  "push": {
+    "prompt": {
+      "title": "Билдирмелерди күйгүзүңүз",
+      "description": "SOS сигналдар дароо билдирмелерди алыңыз...",
+      "features": {
+        "sos": "Жакындарыңыздан SOS сигналдар",
+        "geofence": "Геозона билдирмелери",
+        "alerts": "Маанилүү эскертүүлөр"
+      },
+      "errorTitle": "Билдирмелерди күйгүзүү мүмкүн болгон жок...",
+      "later": "Кийинчерээк",
+      "enable": "Күйгүзүү"
+    },
+    "enabled": "Билдирмелер күйгүзүлдү",
+    "disabled": "Билдирмелер өчүрүлдү"
+  },
+  "sos": {
+    "button": {
+      "emergency": "Шашылыш SOS сигнал",
+      "sent": "Сигнал жакынкы медициналык мекемелерге жөнөтүлдү",
+      "sentToContacts": "Сигнал тандалган байланыштарыңызга жөнөтүлдү",
+      "label": "SOS сигнал"
+    },
+    "errors": {
+      "geolocation": "Геолокацияны алуу мүмкүн болгон жок",
+      "sendFailed": "SOS сигналды жөнөтүү мүмкүн болгон жок -- байланышты текшериңиз",
+      "geolocationError": "Геолокация катасы:"
+    }
+  },
+  "tour": {
+    "groups": {
+      "title": "Менин топторум",
+      "create": "+ Топ түзүү",
+      "dismissConfirm": "Топту таратууга ишенесизби?",
+      "dismissed": "Топ таратылды",
+      "created": "Топ түзүлдү",
+      "createNew": "Жаңы топ түзүү"
+    },
+    "groupDetail": {
+      "active": "Активдүү",
+      "inactive": "Активдүү эмес",
+      "tourInProgress": "Тур жүрүп жатат",
+      "members": "Катышуучулар",
+      "zones": "Зоналар",
+      "requests": "Арыздар",
+      "total": "Баары",
+      "inviteLink": "Чакыруу шилтемеси",
+      "copyLink": "Көчүрүү",
+      "linkCopied": "Шилтеме көчүрүлдү",
+      "map": "Карта",
+      "membersTab": "Катышуучулар",
+      "zonesTab": "Зоналар",
+      "toursTab": "Турлар",
+      "addZone": "+ Зона кошуу",
+      "createTour": "+ Тур түзүү",
+      "tourCreationInProgress": "Тур түзүү иштелип жатат",
+      "dismissGroup": "Топту таратуу",
+      "createNewZone": "Жаңы зона түзүү",
+      "zoneCreated": "Зона түзүлдү"
+    },
+    "join": {
+      "title": "Топко кошулуу",
+      "notFound": "Топ табылган жок же активдүү эмес",
+      "requestSent": "Кошулуу арызы жөнөтүлдү! Агенттин ырастоосун күтүңүз.",
+      "joinFailed": "Топко кошулуу мүмкүн болгон жок",
+      "organizer": "Уюштуруучу",
+      "members": "Катышуучулар",
+      "zones": "Зоналар",
+      "code": "Код",
+      "tourZones": "Тур зоналары:",
+      "joinButton": "Топко кошулуу",
+      "groupInactive": "Топ активдүү эмес",
+      "emojiTip": "💡 Кеңеш: топту тез таануу үчүн эмдзи колдонсоңуз болот"
+    },
+    "groupList": {
+      "empty": "Сизде азырынча топтор жок",
+      "emptyDescription": "Баштоо үчүн биринчи топту түзүңүз",
+      "agent": "Агент",
+      "unknown": "Белгисиз",
+      "active": "Активдүү",
+      "inactive": "Активдүү эмес",
+      "tourInProgress": "Тур жүрүп жатат",
+      "members": "катышуучулар",
+      "requests": "арыздар",
+      "details": "Толук маалымат",
+      "dismiss": "Таратуу",
+      "copyLink": "Шилтемени көчүрүү"
+    },
+    "members": {
+      "accepted": "Катышуучу топко кабыл алынды",
+      "removeConfirm": "Катышуучуну топто өчүрөсүзбү?",
+      "removed": "Катышуучу өчүрүлдү",
+      "waiting": "Күтүүдө",
+      "active": "Активдүү",
+      "left": "Кетти",
+      "deleted": "Өчүрүлдү",
+      "empty": "Топто азырынча катышуучулар жок",
+      "inviteDescription": "Туристтерди шилтеме менен чакырыңыз",
+      "accept": "Кабыл алуу",
+      "reject": "Баш тартуу",
+      "remove": "Өчүрүү"
+    },
+    "sessions": {
+      "durationLabel": "Турдун узактыгы (мүнөт):",
+      "durationError": "Туура эмес узактык (1-1440 мүнөт)",
+      "tourStarted": "Тур башталды!",
+      "finishConfirm": "Турду аяктоо?",
+      "tourFinished": "Тур аяктады",
+      "cancelConfirm": "Турду жокко чыгаруу?",
+      "tourCancelled": "Тур жокко чыгарылды",
+      "draft": "Черновик",
+      "active": "Жүрүп жатат",
+      "finished": "Аяктады",
+      "cancelled": "Жокко чыгарылды",
+      "empty": "Топто азырынча турлар жок",
+      "createButton": "+ Тур түзүү",
+      "emptyDescription": "Турлар катышуучуларды реалдуу убакытта көзөмөлдөөгө мүмкүндүк берет",
+      "addZone": "+ Зона кошуу",
+      "created": "Түзүлдү",
+      "remaining": "Калды",
+      "startTour": "Турду баштоо",
+      "cancel": "Жокко чыгаруу",
+      "finish": "Аяктоо",
+      "createNewTour": "Жаңы тур түзүү"
+    },
+    "zones": {
+      "zoneCreated": "Зона түзүлдү",
+      "empty": "Топто азырынча зоналар жок",
+      "createButton": "+ Зона түзүү",
+      "emptyDescription": "Зоналар туристтер үчүн коопсуз аймакты аныктайт",
+      "addZone": "+ Зона кошуу",
+      "active": "Активдүү",
+      "inactive": "Активдүү эмес",
+      "createNewZone": "Жаңы зона түзүү"
+    },
+    "joinByCode": {
+      "codeLength": "Код 6 белгиден турушу керек",
+      "requestSent": "Кошулуу арызы жөнөтүлдү",
+      "invalidCode": "Туура эмес чакыруу коду",
+      "title": "Код менен топко кошулуу",
+      "joinButton": "Кошулуу",
+      "placeholder": "Чакыруу шилтемесинен 6 саналуу кодду киргизиңиз"
+    },
+    "createGroupForm": {
+      "groupCreated": "Топ түзүлдү",
+      "createFailed": "Топту түзүү мүмкүн болгон жок",
+      "createError": "Топту түзүүдө ката",
+      "nameLabel": "Топтун аталышы",
+      "namePlaceholder": "Мисалы: Тоого поход",
+      "descriptionLabel": "Сүрөттөмө (милдеттүү эмес)",
+      "descriptionPlaceholder": "Турдун кыскача сүрөттөмөсү",
+      "cancel": "Жокко чыгаруу",
+      "createButton": "Топ түзүү"
+    },
+    "timer": {
+      "tour": "Тур",
+      "finishConfirm": "Турду аяктоо?",
+      "tourFinished": "Тур аяктады",
+      "finishFailed": "Турду аяктоо мүмкүн болгон жок",
+      "active": "Жүрүп жатат",
+      "finish": "Аяктоо"
+    },
+    "groupMap": {
+      "active": "Активдүү",
+      "inactive": "Активдүү эмес",
+      "online": "Онлайн",
+      "unknown": "Белгисиз"
+    }
+  },
+  "roles": {
+    "user": {
+      "title": "Мен SOS колдонуучусумун",
+      "description": "Мен SOS колдонуучусумун"
+    },
+    "parent": {
+      "title": "Мен ата-энемин",
+      "description": "Мен ата-энемин"
+    },
+    "child": {
+      "title": "Мен баламын",
+      "description": "Мен баламын"
+    },
+    "guide": {
+      "title": "Мен гидмин",
+      "description": "Мен гидмин"
+    },
+    "tourist": {
+      "title": "Мен туристмин",
+      "description": "Мен туристмин"
+    }
+  }
 }

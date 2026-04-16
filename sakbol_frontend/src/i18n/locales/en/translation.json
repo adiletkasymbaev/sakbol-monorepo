@@ -1,3 +1,325 @@
 {
-    "test": "grisha"
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "back": "Back",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied",
+    "error": "Error",
+    "success": "Success",
+    "notSpecified": "Not specified"
+  },
+  "auth": {
+    "login": {
+      "title": "Login to your account",
+      "button": "Login",
+      "tagline": "The most reliable SOS app in Kyrgyzstan"
+    },
+    "register": {
+      "title": "Registration",
+      "button": "Create account"
+    },
+    "selectRole": {
+      "title": "Register to protect your loved ones",
+      "button": "Continue",
+      "selectRole": "Select a role"
+    },
+    "form": {
+      "email": "Email",
+      "emailPlaceholder": "Enter your email",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "loginButton": "Login",
+      "phone": "Phone number",
+      "phonePlaceholder": "Enter your phone number",
+      "firstName": "First name",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastName": "Last name",
+      "lastNamePlaceholder": "Enter your last name",
+      "birthDate": "Date of birth",
+      "city": "City",
+      "cityPlaceholder": "Specify your city",
+      "street": "Street",
+      "streetPlaceholder": "Enter street name",
+      "houseNumber": "House number",
+      "houseNumberPlaceholder": "Enter house number",
+      "apartmentNumber": "Apartment number (Optional)",
+      "apartmentNumberPlaceholder": "Enter apartment number",
+      "healthInfo": "Health information (Optional)",
+      "healthInfoPlaceholder": "Enter information",
+      "confirm": "Confirm",
+      "back": "Back"
+    },
+    "fallback": {
+      "hasAccount": "Already have an account?",
+      "login": "Login",
+      "noAccount": "Don't have an account yet?",
+      "register": "Register"
+    }
+  },
+  "navbar": {
+    "home": "Home",
+    "groups": "Groups",
+    "contacts": "Contacts",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "profile": {
+    "title": "Profile",
+    "logout": "Logout",
+    "noName": "Unnamed",
+    "id": "ID",
+    "role": "Role",
+    "contacts": "Contacts",
+    "email": "Email",
+    "phone": "Phone number",
+    "personalInfo": "Personal information",
+    "birthDate": "Date of birth",
+    "medicalInfo": "Medical information",
+    "address": "Address",
+    "city": "City",
+    "street": "Street",
+    "apartment": "Apartment"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "tabs": {
+      "contacts": "Contacts",
+      "requests": "Requests"
+    },
+    "addContact": "Add contact",
+    "accepted": {
+      "requestDeleted": "You deleted the request",
+      "error": "Error",
+      "empty": "No contacts"
+    },
+    "pending": {
+      "outgoing": "Outgoing requests",
+      "requestDeleted": "You deleted the request",
+      "requestAccepted": "Request accepted",
+      "emptyOutgoing": "No outgoing requests",
+      "incoming": "Incoming requests",
+      "emptyIncoming": "No incoming requests",
+      "error": "Error"
+    }
+  },
+  "map": {
+    "startTour": "🚶 Start tour",
+    "yourContacts": "Your contacts"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "keywords": "Keywords",
+    "keywordsDescription": "You can say the following words to trigger an SOS signal:",
+    "keywordsList": {
+      "help": "Help",
+      "sos": "SOS",
+      "sosSpelled": "S O S",
+      "assistance": "Assistance",
+      "coffee": "I want coffee",
+      "shop": "I'm going to the shop",
+      "work": "When to work?"
+    },
+    "language": "Language",
+    "languagePlaceholder": "Select language",
+    "privacyPolicy": "Privacy Policy",
+    "privacyPolicyContent": "Privacy policy text will be here..."
+  },
+  "push": {
+    "prompt": {
+      "title": "Enable notifications",
+      "description": "Receive instant notifications about SOS signals...",
+      "features": {
+        "sos": "SOS signals from loved ones",
+        "geofence": "Geofence alerts",
+        "alerts": "Important alerts"
+      },
+      "errorTitle": "Failed to enable notifications...",
+      "later": "Later",
+      "enable": "Enable"
+    },
+    "enabled": "Notifications enabled",
+    "disabled": "Notifications disabled"
+  },
+  "sos": {
+    "button": {
+      "emergency": "Emergency SOS signal",
+      "sent": "Signal sent to nearest medical facilities",
+      "sentToContacts": "Signal sent to your favorite contacts",
+      "label": "SOS signal"
+    },
+    "errors": {
+      "geolocation": "Failed to get geolocation",
+      "sendFailed": "Failed to send SOS signal -- check your connection",
+      "geolocationError": "Geolocation error:"
+    }
+  },
+  "tour": {
+    "groups": {
+      "title": "My groups",
+      "create": "+ Create group",
+      "dismissConfirm": "Are you sure you want to dismiss the group?",
+      "dismissed": "Group dismissed",
+      "created": "Group created",
+      "createNew": "Create new group"
+    },
+    "groupDetail": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "tourInProgress": "Tour in progress",
+      "members": "Members",
+      "zones": "Zones",
+      "requests": "Requests",
+      "total": "Total",
+      "inviteLink": "Invite link",
+      "copyLink": "Copy",
+      "linkCopied": "Link copied",
+      "map": "Map",
+      "membersTab": "Members",
+      "zonesTab": "Zones",
+      "toursTab": "Tours",
+      "addZone": "+ Add zone",
+      "createTour": "+ Create tour",
+      "tourCreationInProgress": "Tour creation is in development",
+      "dismissGroup": "Dismiss group",
+      "createNewZone": "Create new zone",
+      "zoneCreated": "Zone created"
+    },
+    "join": {
+      "title": "Join group",
+      "notFound": "Group not found or inactive",
+      "requestSent": "Join request sent! Wait for confirmation from the agent.",
+      "joinFailed": "Failed to join the group",
+      "organizer": "Organizer",
+      "members": "Members",
+      "zones": "Zones",
+      "code": "Code",
+      "tourZones": "Tour zones:",
+      "joinButton": "Join group",
+      "groupInactive": "Group is inactive",
+      "emojiTip": "💡 Tip: you can use emoji for quick group identification"
+    },
+    "groupList": {
+      "empty": "You don't have any groups yet",
+      "emptyDescription": "Create your first group to get started",
+      "agent": "Agent",
+      "unknown": "Unknown",
+      "active": "Active",
+      "inactive": "Inactive",
+      "tourInProgress": "Tour in progress",
+      "members": "members",
+      "requests": "requests",
+      "details": "Details",
+      "dismiss": "Dismiss",
+      "copyLink": "Copy link"
+    },
+    "members": {
+      "accepted": "Member accepted to group",
+      "removeConfirm": "Remove member from group?",
+      "removed": "Member removed",
+      "waiting": "Waiting",
+      "active": "Active",
+      "left": "Left",
+      "deleted": "Deleted",
+      "empty": "No members in the group yet",
+      "inviteDescription": "Invite tourists via link",
+      "accept": "Accept",
+      "reject": "Reject",
+      "remove": "Remove"
+    },
+    "sessions": {
+      "durationLabel": "Tour duration in minutes:",
+      "durationError": "Invalid duration (1-1440 minutes)",
+      "tourStarted": "Tour started!",
+      "finishConfirm": "Finish tour?",
+      "tourFinished": "Tour finished",
+      "cancelConfirm": "Cancel tour?",
+      "tourCancelled": "Tour cancelled",
+      "draft": "Draft",
+      "active": "Active",
+      "finished": "Finished",
+      "cancelled": "Cancelled",
+      "empty": "No tours in the group yet",
+      "createButton": "+ Create tour",
+      "emptyDescription": "Tours allow you to track members in real time",
+      "addZone": "+ Add zone",
+      "created": "Created",
+      "remaining": "Remaining",
+      "startTour": "Start tour",
+      "cancel": "Cancel",
+      "finish": "Finish",
+      "createNewTour": "Create new tour"
+    },
+    "zones": {
+      "zoneCreated": "Zone created",
+      "empty": "No zones in the group yet",
+      "createButton": "+ Create zone",
+      "emptyDescription": "Zones define safe territory for tourists",
+      "addZone": "+ Add zone",
+      "active": "Active",
+      "inactive": "Inactive",
+      "createNewZone": "Create new zone"
+    },
+    "joinByCode": {
+      "codeLength": "Code must contain 6 characters",
+      "requestSent": "Join request sent",
+      "invalidCode": "Invalid invite code",
+      "title": "Join group by code",
+      "joinButton": "Join",
+      "placeholder": "Enter 6-digit code from invite link"
+    },
+    "createGroupForm": {
+      "groupCreated": "Group created",
+      "createFailed": "Failed to create group",
+      "createError": "Error creating group",
+      "nameLabel": "Group name",
+      "namePlaceholder": "e.g. Mountain hike",
+      "descriptionLabel": "Description (optional)",
+      "descriptionPlaceholder": "Brief tour description",
+      "cancel": "Cancel",
+      "createButton": "Create group"
+    },
+    "timer": {
+      "tour": "Tour",
+      "finishConfirm": "Finish tour?",
+      "tourFinished": "Tour finished",
+      "finishFailed": "Failed to finish tour",
+      "active": "Active",
+      "finish": "Finish"
+    },
+    "groupMap": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "online": "Online",
+      "unknown": "Unknown"
+    }
+  },
+  "roles": {
+    "user": {
+      "title": "I am an SOS user",
+      "description": "I am an SOS user"
+    },
+    "parent": {
+      "title": "I am a parent",
+      "description": "I am a parent"
+    },
+    "child": {
+      "title": "I am a child",
+      "description": "I am a child"
+    },
+    "guide": {
+      "title": "I am a guide",
+      "description": "I am a guide"
+    },
+    "tourist": {
+      "title": "I am a tourist",
+      "description": "I am a tourist"
+    }
+  }
 }

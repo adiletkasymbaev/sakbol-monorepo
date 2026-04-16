@@ -1,3 +1,325 @@
 {
-    "test": "grisha"
+  "common": {
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "confirm": "Подтвердить",
+    "back": "Вернуться",
+    "close": "Закрыть",
+    "copy": "Копировать",
+    "copied": "Скопировано",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "notSpecified": "Не указано"
+  },
+  "auth": {
+    "login": {
+      "title": "Войдите в аккаунт",
+      "button": "Вход",
+      "tagline": "Самое надежное SOS-приложение в Кыргызстане"
+    },
+    "register": {
+      "title": "Регистрация",
+      "button": "Создать аккаунт"
+    },
+    "selectRole": {
+      "title": "Жакындарыңызды коргоо үчүн катталыңыз",
+      "button": "Улантуу",
+      "selectRole": "Ролду тандаңыз"
+    },
+    "form": {
+      "email": "Email",
+      "emailPlaceholder": "Введите ваш email",
+      "password": "Пароль",
+      "passwordPlaceholder": "Введите пароль",
+      "loginButton": "Войти",
+      "phone": "Номер телефона",
+      "phonePlaceholder": "Введите ваш номер телефона",
+      "firstName": "Имя",
+      "firstNamePlaceholder": "Введите ваше имя",
+      "lastName": "Фамилия",
+      "lastNamePlaceholder": "Введите вашу фамилию",
+      "birthDate": "Дата рождения",
+      "city": "Город",
+      "cityPlaceholder": "Укажите ваш город",
+      "street": "Улица",
+      "streetPlaceholder": "Введите название улицы",
+      "houseNumber": "Номер дома",
+      "houseNumberPlaceholder": "Введите номер дома",
+      "apartmentNumber": "Номер квартиры (Необяз.)",
+      "apartmentNumberPlaceholder": "Введите номер квартиры",
+      "healthInfo": "Информация о здоровье (Необяз.)",
+      "healthInfoPlaceholder": "Введите информацию",
+      "confirm": "Подтвердить",
+      "back": "Вернуться"
+    },
+    "fallback": {
+      "hasAccount": "Уже есть аккаунт?",
+      "login": "Войдите",
+      "noAccount": "Еще нет аккаунта?",
+      "register": "Зарегистрируйтесь"
+    }
+  },
+  "navbar": {
+    "home": "Главная",
+    "groups": "Группы",
+    "contacts": "Контакты",
+    "settings": "Настройки",
+    "profile": "Профиль"
+  },
+  "profile": {
+    "title": "Профиль",
+    "logout": "Выйти",
+    "noName": "Без имени",
+    "id": "ID",
+    "role": "Роль",
+    "contacts": "Контакты",
+    "email": "Электронная почта",
+    "phone": "Номер телефона",
+    "personalInfo": "Личная информация",
+    "birthDate": "Дата рождения",
+    "medicalInfo": "Медицинская информация",
+    "address": "Адрес",
+    "city": "Город",
+    "street": "Улица",
+    "apartment": "Квартира"
+  },
+  "contacts": {
+    "title": "Контакты",
+    "tabs": {
+      "contacts": "Контакты",
+      "requests": "Заявки"
+    },
+    "addContact": "Добавить контакт",
+    "accepted": {
+      "requestDeleted": "Вы удалили заявку",
+      "error": "Ошибка",
+      "empty": "Нет контактов"
+    },
+    "pending": {
+      "outgoing": "Исходящие заявки",
+      "requestDeleted": "Вы удалили заявку",
+      "requestAccepted": "Заявка принята",
+      "emptyOutgoing": "Нет исходящих заявок",
+      "incoming": "Входящие заявки",
+      "emptyIncoming": "Нет входящих заявок",
+      "error": "Ошибка"
+    }
+  },
+  "map": {
+    "startTour": "🚶 Начать тур",
+    "yourContacts": "Ваши контакты"
+  },
+  "settings": {
+    "title": "Настройки",
+    "profile": "Профиль",
+    "keywords": "Ключевые слова",
+    "keywordsDescription": "Вы можете произнести следующие слова чтобы произвести сос-сигнал:",
+    "keywordsList": {
+      "help": "Помогите",
+      "sos": "СОС",
+      "sosSpelled": "Эс о эс",
+      "assistance": "Помощь",
+      "coffee": "Я хочу кофе",
+      "shop": "Я схожу в магазин",
+      "work": "Когда на работу?"
+    },
+    "language": "Язык",
+    "languagePlaceholder": "Выбрать язык",
+    "privacyPolicy": "Политика конфиденциальности",
+    "privacyPolicyContent": "Здесь будет текст политики конфиденциальности..."
+  },
+  "push": {
+    "prompt": {
+      "title": "Включите уведомления",
+      "description": "Получайте мгновенные уведомления о SOS-сигналах...",
+      "features": {
+        "sos": "SOS-сигналы от близких",
+        "geofence": "Предупреждения о геозонах",
+        "alerts": "Важные оповещения"
+      },
+      "errorTitle": "Не удалось включить уведомления...",
+      "later": "Позже",
+      "enable": "Включить"
+    },
+    "enabled": "Уведомления включены",
+    "disabled": "Уведомления отключены"
+  },
+  "sos": {
+    "button": {
+      "emergency": "Экстренный СОС-сигнал",
+      "sent": "Сигнал отправлен ближайшим мед. учреждениям",
+      "sentToContacts": "Сигнал отправлен вашим избранным контактам",
+      "label": "СОС-сигнал"
+    },
+    "errors": {
+      "geolocation": "Не удалось получить геолокацию",
+      "sendFailed": "Не удалось отправить SOS-сигнал -- проверьте соединение",
+      "geolocationError": "Геолокация ошибка:"
+    }
+  },
+  "tour": {
+    "groups": {
+      "title": "Мои группы",
+      "create": "+ Создать группу",
+      "dismissConfirm": "Вы уверены, что хотите распустить группу?",
+      "dismissed": "Группа распущена",
+      "created": "Группа создана",
+      "createNew": "Создать новую группу"
+    },
+    "groupDetail": {
+      "active": "Активна",
+      "inactive": "Не активна",
+      "tourInProgress": "Идет тур",
+      "members": "Участников",
+      "zones": "Зон",
+      "requests": "Заявок",
+      "total": "Всего",
+      "inviteLink": "Пригласительная ссылка",
+      "copyLink": "Копировать",
+      "linkCopied": "Ссылка скопирована",
+      "map": "Карта",
+      "membersTab": "Участники",
+      "zonesTab": "Зоны",
+      "toursTab": "Туры",
+      "addZone": "+ Добавить зону",
+      "createTour": "+ Создать тур",
+      "tourCreationInProgress": "Создание туров в разработке",
+      "dismissGroup": "Распустить группу",
+      "createNewZone": "Создать новую зону",
+      "zoneCreated": "Зона создана"
+    },
+    "join": {
+      "title": "Присоединение к группе",
+      "notFound": "Группа не найдена или неактивна",
+      "requestSent": "Заявка на вступление отправлена! Ожидайте подтверждения от агента.",
+      "joinFailed": "Не удалось вступить в группу",
+      "organizer": "Организатор",
+      "members": "Участников",
+      "zones": "Зон",
+      "code": "Код",
+      "tourZones": "Зоны тура:",
+      "joinButton": "Вступить в группу",
+      "groupInactive": "Группа неактивна",
+      "emojiTip": "💡 Совет: вы можете использовать эмодзи для быстрой идентификации группы"
+    },
+    "groupList": {
+      "empty": "У вас пока нет групп",
+      "emptyDescription": "Создайте первую группу, чтобы начать",
+      "agent": "Агент",
+      "unknown": "Неизвестный",
+      "active": "Активна",
+      "inactive": "Не активна",
+      "tourInProgress": "Идет тур",
+      "members": "участников",
+      "requests": "заявок",
+      "details": "Подробнее",
+      "dismiss": "Распустить",
+      "copyLink": "Копировать ссылку"
+    },
+    "members": {
+      "accepted": "Участник принят в группу",
+      "removeConfirm": "Удалить участника из группы?",
+      "removed": "Участник удален",
+      "waiting": "Ожидает",
+      "active": "Активен",
+      "left": "Покинул",
+      "deleted": "Удален",
+      "empty": "В группе пока нет участников",
+      "inviteDescription": "Пригласите туристов по ссылке",
+      "accept": "Принять",
+      "reject": "Отклонить",
+      "remove": "Удалить"
+    },
+    "sessions": {
+      "durationLabel": "Длительность тура в минутах:",
+      "durationError": "Неверная длительность (1-1440 минут)",
+      "tourStarted": "Тур начался!",
+      "finishConfirm": "Завершить тур?",
+      "tourFinished": "Тур завершен",
+      "cancelConfirm": "Отменить тур?",
+      "tourCancelled": "Тур отменен",
+      "draft": "Черновик",
+      "active": "Идет",
+      "finished": "Завершен",
+      "cancelled": "Отменен",
+      "empty": "У группы пока нет туров",
+      "createButton": "+ Создать тур",
+      "emptyDescription": "Туры позволяют отслеживать участников в реальном времени",
+      "addZone": "+ Добавить зону",
+      "created": "Создан",
+      "remaining": "Осталось",
+      "startTour": "Начать тур",
+      "cancel": "Отменить",
+      "finish": "Завершить",
+      "createNewTour": "Создать новый тур"
+    },
+    "zones": {
+      "zoneCreated": "Зона создана",
+      "empty": "В группе пока нет зон",
+      "createButton": "+ Создать зону",
+      "emptyDescription": "Зоны определяют безопасную территорию для туристов",
+      "addZone": "+ Добавить зону",
+      "active": "Активна",
+      "inactive": "Не активна",
+      "createNewZone": "Создать новую зону"
+    },
+    "joinByCode": {
+      "codeLength": "Код должен содержать 6 символов",
+      "requestSent": "Заявка на вступление отправлена",
+      "invalidCode": "Неверный код приглашения",
+      "title": "Вступить в группу по коду",
+      "joinButton": "Вступить",
+      "placeholder": "Введите 6-значный код из пригласительной ссылки"
+    },
+    "createGroupForm": {
+      "groupCreated": "Группа создана",
+      "createFailed": "Не удалось создать группу",
+      "createError": "Ошибка при создании группы",
+      "nameLabel": "Название группы",
+      "namePlaceholder": "Например: Поход в горы",
+      "descriptionLabel": "Описание (необязательно)",
+      "descriptionPlaceholder": "Краткое описание тура",
+      "cancel": "Отмена",
+      "createButton": "Создать группу"
+    },
+    "timer": {
+      "tour": "Тур",
+      "finishConfirm": "Завершить тур?",
+      "tourFinished": "Тур завершен",
+      "finishFailed": "Не удалось завершить тур",
+      "active": "Идет",
+      "finish": "Завершить"
+    },
+    "groupMap": {
+      "active": "Активна",
+      "inactive": "Не активна",
+      "online": "Онлайн",
+      "unknown": "Неизвестно"
+    }
+  },
+  "roles": {
+    "user": {
+      "title": "Мен SOS колдонуучусумун",
+      "description": "Мен SOS колдонуучусумун"
+    },
+    "parent": {
+      "title": "Мен ата-энемин",
+      "description": "Мен ата-энемин"
+    },
+    "child": {
+      "title": "Мен баламын",
+      "description": "Мен баламын"
+    },
+    "guide": {
+      "title": "Мен гидмин",
+      "description": "Мен гидмин"
+    },
+    "tourist": {
+      "title": "Мен туристмин",
+      "description": "Мен туристмин"
+    }
+  }
 }

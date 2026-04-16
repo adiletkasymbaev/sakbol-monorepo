@@ -1,15 +1,22 @@
 import UrlNames from "../enums/UrlNames";
 import IconGear from "../icons/IconGear";
+import IconGroup from "../icons/IconGroup";
 import IconHouse from "../icons/IconHouse";
 import IconMapPin from "../icons/IconMapPin";
 import IconPerson from "../icons/IconPerson";
 import NavItem from "./NavItem";
 import SosButton from "./SosButton";
+import useAuth from "../../store/useAuth";
+import { ProfileRoles } from "../enums/ProfileRoles";
 
 function NavBar() {
     const activeClass = "text-[#F39DAA]";
     const inactiveClass = "text-white";
-    
+    const userRole = useAuth((state) => state.userRole);
+    const isTourAgent = userRole === ProfileRoles.TOUR_AGENCY;
+    const isTourist = userRole === ProfileRoles.TOURIST;
+    const showGroups = isTourAgent || isTourist;
+
     const content = (
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full z-9999 bg-primary p-2 rounded-t-md">
             <div className="flex justify-between relative items-center">
@@ -18,9 +25,25 @@ function NavBar() {
                         Главная
                     </NavItem>
 
-                    <NavItem link={"/" + UrlNames.SOS_CONTACTS} icon={<IconMapPin className="w-5 h-5" />} activeClass={activeClass} inactiveClass={inactiveClass}>
-                        Контакты
-                    </NavItem>
+                    {showGroups ? (
+                        <NavItem 
+                            link={"/" + UrlNames.TOUR_GROUPS} 
+                            icon={<IconGroup className="w-5 h-5" />} 
+                            activeClass={activeClass} 
+                            inactiveClass={inactiveClass}
+                        >
+                            Группы
+                        </NavItem>
+                    ) : (
+                        <NavItem 
+                            link={"/" + UrlNames.SOS_CONTACTS} 
+                            icon={<IconMapPin className="w-5 h-5" />} 
+                            activeClass={activeClass} 
+                            inactiveClass={inactiveClass}
+                        >
+                            Контакты
+                        </NavItem>
+                    )}
                 </div>
 
                 <SosButton/>

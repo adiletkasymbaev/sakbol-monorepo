@@ -17,10 +17,12 @@ export function MapController({ onLocationFound, defaultZoom = 14 }: Props) {
 
   const focusOnLocation = useCallback(
     (lat: number, lon: number, zoom = defaultZoom) => {
-      map.flyTo([lat, lon], zoom, {
-        animate: true,
-        duration: 1.5,
-      });
+      if (map) {
+        map.flyTo([lat, lon], zoom, {
+          animate: true,
+          duration: 1.5,
+        });
+      }
     },
     [map, defaultZoom]
   );
