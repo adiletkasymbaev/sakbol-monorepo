@@ -2,7 +2,7 @@ import { addToast } from "@heroui/react";
 import { useEffect, useRef, useState } from "react";
 import { ToastTypes } from "../enums/ToastTypes";
 import { getGeolocation } from "../utils/getGeolocation";
-import { alertsService, sosService } from "../services/sosService";
+import { alertsService } from "../services/sosService";
 import { useTranslation } from "react-i18next";
 
 type Options = {

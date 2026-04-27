@@ -3,10 +3,14 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.db import transaction, models
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
+from django.core.paginator import Paginator
+import json
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view,
     OpenApiParameter, OpenApiExample, OpenApiResponse
@@ -758,3 +762,120 @@ class NotificationViewSet(viewsets.GenericViewSet):
     def unread_count(self, request, *args, **kwargs):
         count = self.get_queryset().filter(is_read=False).count()
         return Response({"count": count})
+
+
+# ==================== Template Views ====================
+
+def home_page_view(request):
+    """Главная страница сайта - лендинг Sakbol."""
+    return render(request, "index.html")
+
+
+@method_decorator(staff_member_required, name="dispatch")
+class SOSAdminView(APIView):
+    """
+    Админ панель для просмотра SOS сигналов на карте.
+    Доступна только для staff/superuser.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Получаем параметры фильтрации
+        time_filter = request.GET.get("time", "today")  # hour, today, yesterday, custom, all
+        service_filter = request.GET.get("service", "")
+        search_query = request.GET.get("q", "")
+        date_from = request.GET.get("date_from", "")
+        date_to = request.GET.get("date_to", "")
+        
+        # Базовый queryset
+        queryset = SosSignal.objects.select_related("sender_user", "service", "service_point").order_by("-created_at")
+        
+        # Фильтрация по времени
+        now = timezone.now()
+        
+        if time_filter == "hour":
+            # Последний час
+            one_hour_ago = now - timedelta(hours=1)
+            queryset = queryset.filter(created_at__gte=one_hour_ago)
+            
+        elif time_filter == "today":
+            # Сегодня
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            queryset = queryset.filter(created_at__gte=today_start)
+            
+        elif time_filter == "yesterday":
+            # Вчера
+            yesterday_start = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            yesterday_end = yesterday_start + timedelta(days=1)
+            queryset = queryset.filter(created_at__gte=yesterday_start, created_at__lt=yesterday_end)
+            
+        elif time_filter == "custom" and date_from and date_to:
+            # Произвольный период
+            try:
+                date_from_dt = datetime.strptime(date_from, "%Y-%m-%d")
+                date_to_dt = datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)
+                queryset = queryset.filter(created_at__gte=date_from_dt, created_at__lt=date_to_dt)
+            except ValueError:
+                pass
+        # Если time_filter == "all" - не фильтруем по времени
+        
+        # Фильтрация по службе
+        if service_filter:
+            queryset = queryset.filter(service__name__icontains=service_filter)
+        
+        # Поиск по отправителю или ID
+        if search_query:
+            queryset = queryset.filter(
+                models.Q(sender_user__email__icontains=search_query) |
+                models.Q(sender_user__first_name__icontains=search_query) |
+                models.Q(sender_user__last_name__icontains=search_query) |
+                models.Q(id__icontains=search_query)
+            )
+        
+        # Пагинация
+        paginator = Paginator(queryset, 50)
+        page_number = request.GET.get("page", 1)
+        page_obj = paginator.get_page(page_number)
+        
+        # Сериализация данных для JSON
+        signals_data = []
+        for signal in page_obj.object_list:
+            sender = signal.sender_user
+            profile = None
+            try:
+                profile = sender.profile
+            except:
+                pass
+            
+            signals_data.append({
+                "id": signal.id,
+                "latitude": signal.latitude,
+                "longitude": signal.longitude,
+                "status": signal.status,
+                "created_at": signal.created_at.isoformat() if signal.created_at else None,
+                "service": signal.service.name if signal.service else None,
+                "service_point": signal.service_point.name if signal.service_point else None,
+                "sender": {
+                    "id": sender.id,
+                    "email": sender.email,
+                    "first_name": profile.first_name if profile else "",
+                    "last_name": profile.last_name if profile else "",
+                    "phone_number": profile.phone_number if profile else "",
+                    "identifier": profile.identifier if profile else "",
+                    "role": sender.role if hasattr(sender, "role") else "",
+                    "avatar": profile.avatar.url if profile and profile.avatar else None,
+                }
+            })
+        
+        context = {
+            "page_obj": page_obj,
+            "sos_signals": page_obj.object_list,
+            "sos_json": json.dumps(signals_data),
+            "time_filter": time_filter,
+            "service_filter": service_filter,
+            "search_query": search_query,
+            "date_from": date_from,
+            "date_to": date_to,
+        }
+        
+        return render(request, "sos_page.html", context)

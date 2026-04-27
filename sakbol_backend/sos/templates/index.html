@@ -1,0 +1,803 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sakbol - СОС-приложение для вашей безопасности | Скачать приложение безопасности</title>
+    <meta name="description" content="Sakbol - инновационное СОС-приложение для экстренных ситуаций, родительского контроля и отслеживания близких. Скачайте приложение для вашей безопасности.">
+    <meta name="keywords" content="СОС приложение, безопасность, родительский контроль, экстренная ситуация, приложение безопасности, скачать СОС приложение">
+    <meta name="author" content="Sakbol">
+    
+    <meta property="og:title" content="Sakbol - СОС-приложение для вашей безопасности">
+    <meta property="og:description" content="Инновационное СОС-приложение для экстренных ситуаций и контроля близких">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sakbol-app.com">
+    <meta property="og:image" content="https://sakbol-app.com/{% static 'assets/sakbol_logo.png' %}">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Sakbol - СОС-приложение для вашей безопасности">
+    <meta name="twitter:description" content="Инновационное СОС-приложение для экстренных ситуаций и контроля близких">
+    <meta name="twitter:image" content="https://sakbol-app.com/{% static 'assets/sakbol_logo.png' %}">
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Sakbol",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Android",
+      "description": "Sakbol - инновационное СОС-приложение для экстренных ситуаций и контроля близких",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "RUB"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "Sakbol"
+      }
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #f39daa;
+            --primary-deep: #e8728a;
+            --secondary: #274193;
+            --secondary-light: #3558c0;
+            --text: #1a1a2e;
+            --text-light: #555;
+            --white: #fff;
+            --gray: #f7f8fc;
+            --border: rgba(39, 65, 147, 0.08);
+            --shadow: 0 8px 40px rgba(39, 65, 147, 0.10);
+            --shadow-sm: 0 2px 12px rgba(39, 65, 147, 0.07);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            line-height: 1.65;
+            color: var(--text);
+            background: var(--white);
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1160px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ─── HEADER ─── */
+        header {
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 1px 0 var(--border), var(--shadow-sm);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            transition: box-shadow 0.3s;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-image {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .logo h1 {
+            font-family: 'Nunito', sans-serif;
+            color: var(--secondary);
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -0.3px;
+        }
+
+        .download-btn {
+            background: var(--secondary);
+            color: var(--white);
+            border: 2px solid transparent;
+            text-decoration: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-btn:hover {
+            background: var(--white);
+            color: var(--secondary);
+            border-color: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39,65,147,0.18);
+        }
+
+        .download-btn .btn-icon {
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            background: linear-gradient(135deg, #f39daa 0%, #e8728a 40%, #274193 100%);
+            color: var(--white);
+            padding: 160px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -60px; left: -60px;
+            width: 340px; height: 340px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -80px; right: -80px;
+            width: 420px; height: 420px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 50px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            backdrop-filter: blur(8px);
+            animation: fadeDown 0.7s ease both;
+        }
+
+        .hero h1 {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 18px;
+            animation: fadeDown 0.7s 0.1s ease both;
+        }
+
+        .hero p {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            max-width: 560px;
+            margin-bottom: 32px;
+            opacity: 0.92;
+            animation: fadeDown 0.7s 0.2s ease both;
+        }
+
+        .hero .download-btn {
+            background: var(--white);
+            color: var(--secondary);
+            border-color: transparent;
+            font-size: 15px;
+            padding: 13px 32px;
+            animation: fadeDown 0.7s 0.3s ease both;
+        }
+
+        .hero .download-btn:hover {
+            background: var(--secondary);
+            color: var(--white);
+            border-color: var(--white);
+        }
+
+        .phone-mockups {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 52px;
+            animation: fadeUp 0.9s 0.4s ease both;
+        }
+
+        .phone-mockup {
+            width: 190px;
+            border-radius: 28px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.22);
+            transition: transform 0.35s ease, box-shadow 0.35s ease;
+        }
+
+        .phone-mockup:first-child { transform: rotate(-3deg) translateY(8px); }
+        .phone-mockup:last-child  { transform: rotate(3deg)  translateY(8px); }
+
+        .phone-mockup:hover {
+            transform: rotate(0deg) translateY(-6px) !important;
+            box-shadow: 0 32px 70px rgba(0,0,0,0.28);
+        }
+
+        /* ─── FEATURE SECTIONS ─── */
+        .feature-section {
+            padding: 90px 0;
+        }
+
+        .feature-section.section-gray {
+            background: var(--gray);
+        }
+
+        .section-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 60px;
+        }
+
+        .section-content.reverse {
+            flex-direction: row-reverse;
+        }
+
+        .section-text {
+            flex: 1;
+        }
+
+        .feature-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(243,157,170,0.15);
+            color: var(--primary-deep);
+            border-radius: 50px;
+            padding: 5px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        .section-text h2 {
+            font-family: 'Nunito', sans-serif;
+            color: var(--secondary);
+            font-size: clamp(1.6rem, 3vw, 2.1rem);
+            font-weight: 900;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .section-text p {
+            font-size: 1.05rem;
+            color: var(--text-light);
+            margin-bottom: 28px;
+            max-width: 440px;
+        }
+
+        .section-images {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            align-items: flex-end;
+        }
+
+        .section-images .phone-mockup {
+            width: 165px;
+            box-shadow: var(--shadow);
+        }
+
+        .section-images .phone-mockup:first-child { transform: rotate(-2deg); }
+        .section-images .phone-mockup:last-child  { transform: rotate(2deg); }
+
+        .section-images .phone-mockup:hover {
+            transform: rotate(0deg) translateY(-8px) !important;
+        }
+
+        /* ─── CONTACTS SECTION ─── */
+        .contacts-section {
+            padding: 90px 0;
+            background: linear-gradient(135deg, #274193 0%, #3558c0 100%);
+            color: var(--white);
+        }
+
+        .contacts-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .contacts-inner h2 {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(1.7rem, 3.5vw, 2.3rem);
+            font-weight: 900;
+            margin-bottom: 12px;
+        }
+
+        .contacts-inner > p {
+            opacity: 0.8;
+            font-size: 1.05rem;
+            margin-bottom: 44px;
+            max-width: 480px;
+        }
+
+        .contacts-cards {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .contact-card {
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 20px;
+            padding: 28px 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(8px);
+            transition: transform 0.25s ease, background 0.25s ease;
+            text-decoration: none;
+            color: inherit;
+            min-width: 220px;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-6px);
+            background: rgba(255,255,255,0.16);
+        }
+
+        .contact-icon {
+            width: 52px;
+            height: 52px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .contact-card .label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            opacity: 0.65;
+        }
+
+        .contact-card .value {
+            font-weight: 700;
+            font-size: 1rem;
+            word-break: break-all;
+        }
+
+        /* ─── FOOTER ─── */
+        footer {
+            background: #0f1a3d;
+            color: var(--white);
+            padding: 52px 0 28px;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 0;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .footer-logo img {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: 2px solid var(--primary);
+            object-fit: contain;
+        }
+
+        .footer-logo h2 {
+            font-family: 'Nunito', sans-serif;
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 28px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 28px;
+        }
+
+        .footer-links a {
+            color: rgba(255,255,255,0.65);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-divider {
+            width: 100%;
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            margin: 20px 0;
+        }
+
+        .copyright {
+            font-size: 13px;
+            opacity: 0.45;
+        }
+
+        /* ─── ANIMATIONS ─── */
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(22px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scroll-reveal */
+        .reveal {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.65s ease, transform 0.65s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 { transition-delay: 0.10s; }
+        .reveal-delay-2 { transition-delay: 0.20s; }
+        .reveal-delay-3 { transition-delay: 0.30s; }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 800px) {
+            .section-content,
+            .section-content.reverse {
+                flex-direction: column;
+                gap: 36px;
+            }
+
+            .section-text p {
+                max-width: 100%;
+            }
+
+            .phone-mockups {
+                flex-wrap: wrap;
+                gap: 14px;
+            }
+
+            .phone-mockup {
+                width: 150px;
+            }
+
+            .section-images .phone-mockup {
+                width: 135px;
+            }
+
+            .contacts-cards {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .contact-card {
+                width: 100%;
+                max-width: 320px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a class="logo" href="#">
+                    <img src="{% static 'assets/sakbol_logo.png' %}" class="logo-image" alt="Логотип Sakbol">
+                    <h1>Sakbol</h1>
+                </a>
+                <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                    <span class="btn-icon">⬇</span> Скачать
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">🛡️ СОС-приложение</div>
+                <h1>Ваша безопасность<br>в ваших руках</h1>
+                <p>Sakbol — инновационное СОС-приложение для экстренных ситуаций, родительского контроля и отслеживания близких</p>
+                <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                    <span class="btn-icon">⬇</span> Скачать приложение
+                </a>
+                <div class="phone-mockups">
+                    <img src="{% static 'assets/m1_processed.png' %}" class="phone-mockup" alt="Главный экран Sakbol">
+                    <img src="{% static 'assets/m2_processed.png' %}" class="phone-mockup" alt="Экстренная кнопка Sakbol">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- СОС сигнал -->
+    <section class="feature-section section-light">
+        <div class="container">
+            <div class="section-content reveal">
+                <div class="section-text">
+                    <div class="feature-label">🆘 Экстренный сигнал</div>
+                    <h2>СОС сигнал</h2>
+                    <p>В экстренной ситуации вызовите СОС-сигнал тройным нажатием на кнопку или голосовой активацией — быстро и без лишних действий.</p>
+                    <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                        <span class="btn-icon">⬇</span> Скачать
+                    </a>
+                </div>
+                <div class="section-images reveal reveal-delay-2">
+                    <img src="{% static 'assets/m3_processed.png' %}" class="phone-mockup" alt="Настройка СОС-сигнала">
+                    <img src="{% static 'assets/m4_processed.png' %}" class="phone-mockup" alt="Активация СОС-сигнала">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Голосовой СОС -->
+    <section class="feature-section section-gray">
+        <div class="container">
+            <div class="section-content reverse reveal">
+                <div class="section-text">
+                    <div class="feature-label">🎤 Голосовое управление</div>
+                    <h2>Голосовой СОС сигнал</h2>
+                    <p>Вызовите помощь, просто произнеся ключевое слово. Ключевые слова задаются в настройках приложения.</p>
+                    <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                        <span class="btn-icon">⬇</span> Скачать
+                    </a>
+                </div>
+                <div class="section-images reveal reveal-delay-2">
+                    <img src="{% static 'assets/m5_processed.png' %}" class="phone-mockup" alt="Голосовой СОС">
+                    <img src="{% static 'assets/m6_processed.png' %}" class="phone-mockup" alt="Настройка голосового СОС">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Контакты -->
+    <section class="feature-section section-light">
+        <div class="container">
+            <div class="section-content reveal">
+                <div class="section-text">
+                    <div class="feature-label">👥 Близкие рядом</div>
+                    <h2>Контакты</h2>
+                    <p>СОС-сигнал мгновенно отправляется вашим близким. Добавьте контакт по уникальному коду — просто и быстро.</p>
+                    <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                        <span class="btn-icon">⬇</span> Скачать
+                    </a>
+                </div>
+                <div class="section-images reveal reveal-delay-2">
+                    <img src="{% static 'assets/m7_processed.png' %}" class="phone-mockup" alt="Контакты Sakbol">
+                    <img src="{% static 'assets/m8_processed.png' %}" class="phone-mockup" alt="Добавление контактов">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Муниципальные службы -->
+    <section class="feature-section section-gray">
+        <div class="container">
+            <div class="section-content reverse reveal">
+                <div class="section-text">
+                    <div class="feature-label">🚨 Службы спасения</div>
+                    <h2>Интеграция с муниципальными службами</h2>
+                    <p>Приложение автоматически уведомляет ближайшие экстренные службы при активации сигнала, сокращая время реагирования до минимума.</p>
+                    <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                        <span class="btn-icon">⬇</span> Скачать
+                    </a>
+                </div>
+                <div class="section-images reveal reveal-delay-2">
+                    <img src="{% static 'assets/m9_processed.png' %}" class="phone-mockup" alt="Интеграция с экстренными службами">
+                    <img src="{% static 'assets/m10_processed.png' %}" class="phone-mockup" alt="Уведомление служб">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Родительский контроль -->
+    <section class="feature-section section-light">
+        <div class="container">
+            <div class="section-content reveal">
+                <div class="section-text">
+                    <div class="feature-label">👨‍👧 Безопасность детей</div>
+                    <h2>Родительский контроль</h2>
+                    <p>Добавляйте детей, задавайте безопасные зоны и отслеживайте их местоположение. Приложение уведомит, если ребёнок сошёл с маршрута.</p>
+                    <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                        <span class="btn-icon">⬇</span> Скачать
+                    </a>
+                </div>
+                <div class="section-images reveal reveal-delay-2">
+                    <img src="{% static 'assets/m11_processed.png' %}" class="phone-mockup" alt="Родительский контроль">
+                    <img src="{% static 'assets/m12_processed.png' %}" class="phone-mockup" alt="Отслеживание детей">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Контроль зон -->
+    <section class="feature-section section-gray">
+        <div class="container">
+            <div class="section-content reverse reveal">
+                <div class="section-text">
+                    <div class="feature-label">📍 Геозоны</div>
+                    <h2>Контроль зон</h2>
+                    <p>Создавайте и редактируйте зоны для детей, устанавливайте время прибытия и отбытия. Полный контроль маршрута в реальном времени.</p>
+                    <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                        <span class="btn-icon">⬇</span> Скачать
+                    </a>
+                </div>
+                <div class="section-images reveal reveal-delay-2">
+                    <img src="{% static 'assets/m13_processed.png' %}" class="phone-mockup" alt="Управление зонами">
+                    <img src="{% static 'assets/m14_processed.png' %}" class="phone-mockup" alt="Создание зон">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Туристам -->
+    <section class="feature-section section-light">
+        <div class="container">
+            <div class="section-content reveal">
+                <div class="section-text">
+                    <div class="feature-label">🏕️ Туризм и группы</div>
+                    <h2>Функционал для туриста</h2>
+                    <p>Те же возможности, что и у родителя — для туристических гидов и групп. Никаких задержек и потерянных клиентов на маршруте.</p>
+                    <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                        <span class="btn-icon">⬇</span> Скачать
+                    </a>
+                </div>
+                <div class="section-images reveal reveal-delay-2">
+                    <img src="{% static 'assets/m15_processed.png' %}" class="phone-mockup" alt="Функционал для туристов">
+                    <img src="{% static 'assets/m16_processed.png' %}" class="phone-mockup" alt="Управление туристическими группами">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacts CTA Section -->
+    <section class="contacts-section">
+        <div class="container">
+            <div class="contacts-inner reveal">
+                <h2>Связаться с нами</h2>
+                <p>Есть вопросы или нужна помощь? Мы всегда на связи — напишите или позвоните нам.</p>
+                <div class="contacts-cards">
+                    <a class="contact-card" href="mailto:Sakbo.app.kg@gmail.com">
+                        <div class="contact-icon">✉️</div>
+                        <span class="label">Email</span>
+                        <span class="value">Sakbo.app.kg@gmail.com</span>
+                    </a>
+                    <a class="contact-card" href="tel:+996224830830">
+                        <div class="contact-icon">📞</div>
+                        <span class="label">Телефон</span>
+                        <span class="value">+996 224 830 830</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="{% static 'assets/sakbol_logo.png' %}" alt="Логотип Sakbol">
+                    <h2>Sakbol</h2>
+                </div>
+                <div class="footer-links">
+                    <a href="privacy-policy.html">Политика конфиденциальности</a>
+                    <a href="terms-of-use.html">Условия использования</a>
+                    <a href="support.html">Поддержка</a>
+                    <a href="mailto:Sakbo.app.kg@gmail.com">Контакты</a>
+                </div>
+                <a class="download-btn" href="{% static 'assets/sakbol_apk.apk' %}" download>
+                    <span class="btn-icon">⬇</span> Скачать приложение
+                </a>
+                <div class="footer-divider"></div>
+                <p class="copyright">© 2023 Sakbol. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Scroll reveal
+        const reveals = document.querySelectorAll('.reveal');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+        reveals.forEach(el => observer.observe(el));
+
+        // Header shadow on scroll
+        window.addEventListener('scroll', () => {
+            document.querySelector('header').style.boxShadow =
+                window.scrollY > 10
+                    ? '0 2px 20px rgba(39,65,147,0.13)'
+                    : '0 1px 0 rgba(39,65,147,0.08)';
+        });
+    </script>
+</body>
+</html>

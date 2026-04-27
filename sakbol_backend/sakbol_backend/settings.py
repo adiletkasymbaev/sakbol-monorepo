@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-cdo)@v8b(b^ln6--be-iwnju9ggzqg%c1!^d=o)0vp2mhn5ppz
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['sakbol.app', 'mobie.sakbol.app']
 
 # MY USER
 AUTH_USER_MODEL = "accounts.User"
@@ -147,10 +147,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static', 
-]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+# STATICFILES_DIRS = [
+#     BASE_DIR / 'static', 
+# ]
+STATIC_ROOT = BASE_DIR / 'static'
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -162,11 +162,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS  
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",          # React/Vite dev
-    "http://localhost:5173",          # Vite default
+    "https://sakbol.app",
+    "https://mobie.sakbol.app",
 ]
-
-CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
 

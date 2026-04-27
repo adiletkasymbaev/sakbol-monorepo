@@ -1,6 +1,10 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
-from .views import ContactViewSet, ContactsLocationsView, GeofenceViewSet, LocationUpdateView, SosSignalViewSet, AlertSignalViewSet, NotificationViewSet
+from .views import (
+    ContactViewSet, ContactsLocationsView, GeofenceViewSet, LocationUpdateView, 
+    SosSignalViewSet, AlertSignalViewSet, NotificationViewSet,
+    home_page_view, SOSAdminView
+)
 
 router = DefaultRouter()
 router.register(r"contacts", ContactViewSet, basename="contact")
@@ -13,4 +17,5 @@ urlpatterns = [
     path("contacts_module/", include(router.urls)),
     path("locations_module/update/", LocationUpdateView.as_view(), name="location-update"),
     path("locations_module/contacts/", ContactsLocationsView.as_view(), name="contacts-locations"),
+    path("sos-admin/", SOSAdminView.as_view(), name="sos-admin"),
 ]

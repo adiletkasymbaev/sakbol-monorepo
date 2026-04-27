@@ -1,0 +1,714 @@
+{% load static %}
+{% load tz %}
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Панель SOS-сигналов - Администрирование</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root{
+      --brand-blue: #274193;
+      --brand-pink: #f39daa;
+      --bg: #f6f7fb;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --radius: 10px;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); color:#0f172a; }
+    .wrap { max-width:1400px; margin:18px auto; padding:16px; box-sizing:border-box; height:calc(100vh - 36px); }
+    .header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; padding:16px; background:var(--card); border-radius:var(--radius); box-shadow: 0 2px 10px rgba(39,65,147,0.06); }
+    .title { font-size:22px; font-weight:800; color:var(--brand-blue); }
+    .subtitle { color:var(--muted); font-size:14px; }
+    
+    .stats-bar {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: var(--card);
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 10px rgba(39,65,147,0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .stat-icon.total { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
+    .stat-icon.active { background: linear-gradient(135deg, #fecaca, #fecaca); }
+    .stat-icon.answered { background: linear-gradient(135deg, #bbf7d0, #bbf7d0); }
+    .stat-value { font-size: 20px; font-weight: 700; color: var(--brand-blue); }
+    .stat-label { font-size: 12px; color: var(--muted); }
+
+    .layout { display:grid; grid-template-columns:420px 1fr; gap:16px; height:calc(100% - 140px); }
+
+    /* left panel */
+    .panel { background:var(--card); border-radius:var(--radius); padding:16px; box-shadow: 0 6px 20px rgba(39,65,147,0.06); display:flex; flex-direction:column; }
+    
+    .filters { display:flex; flex-direction:column; gap:12px; margin-bottom:16px; }
+    .filter-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .filters select, .filters input[type="search"], .filters input[type="date"] { 
+      padding:10px 12px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; min-width:0; flex:1; font-size:14px;
+    }
+    .filters select:focus, .filters input:focus { outline:none; border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(39,65,147,0.1); }
+    .filters .btn { padding:10px 16px; border-radius:8px; border:0; cursor:pointer; background:var(--brand-blue); color:#fff; font-weight:600; font-size:14px; transition:all 0.2s; }
+    .filters .btn:hover { background:#1e357a; transform:translateY(-1px); }
+    .filters .btn.secondary { background:#64748b; }
+    .filters .btn.secondary:hover { background:#475569; }
+    
+    .date-range { display:none; gap:8px; align-items:center; }
+    .date-range.visible { display:flex; }
+    .date-range label { font-size:12px; color:var(--muted); white-space:nowrap; }
+
+    .countline { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #e2e8f0; }
+    .countline .count { font-weight:700; color:var(--brand-blue); font-size:16px; }
+    .countline .small { color:var(--muted); font-size:13px; }
+
+    .sos-list { overflow:auto; flex:1; padding-right:6px; }
+    .sos-list::-webkit-scrollbar { width:6px; }
+    .sos-list::-webkit-scrollbar-track { background:#f1f5f9; border-radius:3px; }
+    .sos-list::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+    .sos-list::-webkit-scrollbar-thumb:hover { background:#94a3b8; }
+    
+    .sos-item {
+      display:flex; gap:12px; align-items:flex-start; padding:14px; border-radius:12px; background:#fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); border:1px solid #e2e8f0;
+      margin-bottom:10px; cursor:pointer; transition:all .15s ease;
+    }
+    .sos-item:hover { transform:translateY(-2px); box-shadow: 0 4px 12px rgba(39,65,147,0.1); border-color:var(--brand-blue); }
+    .sos-item.active { outline:2px solid var(--brand-blue); background: #eff6ff; }
+
+    .sos-left { 
+      width:48px; height:48px; border-radius:10px; 
+      background:linear-gradient(135deg,var(--brand-pink),#e8799b); 
+      display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:18px;
+      flex-shrink:0;
+    }
+    .sos-left.status-active { background:linear-gradient(135deg,var(--danger),#dc2626); }
+    .sos-left.status-inactive { background:linear-gradient(135deg,#9ca3af,#6b7280); }
+    .sos-left.status-answered { background:linear-gradient(135deg,var(--success),#16a34a); }
+    
+    .sos-main { flex:1; min-width:0; }
+    .sos-top { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+    .sos-id { font-weight:700; color:var(--brand-blue); font-size:14px; }
+    .sos-sender { color:#0f172a; font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sos-meta { color:var(--muted); font-size:12px; margin-top:6px; display:flex; flex-direction:column; gap:2px; }
+    .sos-meta .time { display:flex; align-items:center; gap:4px; }
+    .sos-meta .coordinates { font-size:11px; color:#94a3b8; }
+
+    .chip {
+      padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600; color:#fff;
+    }
+    .chip.ambulance { background:#ef4444; }
+    .chip.police { background:var(--brand-blue); }
+    .chip.fire { background:#f59e0b; }
+    .chip.unknown { background:#64748b; }
+    
+    .status-badge {
+      padding:3px 8px; border-radius:999px; font-size:11px; font-weight:600;
+    }
+    .status-badge.active { background:#fecaca; color:#991b1b; }
+    .status-badge.inactive { background:#e2e8f0; color:#475569; }
+    .status-badge.answered { background:#bbf7d0; color:#166534; }
+
+    .empty { text-align:center; padding:40px 20px; color:var(--muted); }
+    .empty-icon { font-size:48px; margin-bottom:12px; }
+
+    /* map */
+    #map { width:100%; height:100%; border-radius:var(--radius); box-shadow: 0 6px 24px rgba(39,65,147,0.06); }
+
+    /* modal */
+    .modal-backdrop { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(2,6,23,0.5); z-index:9999; backdrop-filter:blur(4px); }
+    .modal { width:800px; max-width:95%; max-height:90vh; overflow:auto; background:#fff; border-radius:16px; padding:24px; box-shadow:0 30px 80px rgba(39,65,147,0.3); color:#0f172a; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-bottom:16px; border-bottom:1px solid #e2e8f0; }
+    .modal-title { font-size:20px; font-weight:700; color:var(--brand-blue); }
+    .modal-body { display:grid; grid-template-columns:auto 1fr; gap:24px; margin-top:20px; }
+    
+    .user-card {
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      min-width: 180px;
+    }
+    .avatar { width:100px; height:100px; border-radius:50%; object-fit:cover; background:#e2e8f0; margin-bottom:12px; border:3px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    .user-name { font-size:16px; font-weight:700; color:#0f172a; margin-bottom:4px; }
+    .user-role { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+    
+    .info { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .info.full-width { grid-template-columns:1fr; }
+    .meta-row { background:#f8fafc; padding:12px 16px; border-radius:8px; }
+    .meta-label { color:var(--muted); font-size:11px; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
+    .meta-value { font-size:14px; color:#0f172a; font-weight:600; }
+    .meta-value.highlight { color:var(--brand-blue); font-size:16px; }
+    .meta-value.status-active { color:var(--danger); }
+    .meta-value.status-inactive { color:#6b7280; }
+    .meta-value.status-answered { color:var(--success); }
+
+    .modal-footer { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; padding-top:16px; border-top:1px solid #e2e8f0; }
+    .btn { padding:10px 20px; border-radius:8px; border:0; cursor:pointer; font-weight:600; font-size:14px; transition:all 0.2s; }
+    .btn.secondary { background:#f1f5f9; color:#475569; }
+    .btn.secondary:hover { background:#e2e8f0; }
+    .btn.primary { background:var(--brand-blue); color:#fff; }
+    .btn.primary:hover { background:#1e357a; transform:translateY(-1px); }
+    .btn.danger { background:var(--danger); color:#fff; }
+    .btn.danger:hover { background:#dc2626; }
+
+    /* pagination */
+    .pagination { display:flex; justify-content:center; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0; }
+    .pagination a, .pagination span { padding:8px 12px; border-radius:6px; text-decoration:none; color:var(--brand-blue); font-size:13px; font-weight:600; }
+    .pagination a:hover { background:#eff6ff; }
+    .pagination .current { background:var(--brand-blue); color:#fff; }
+    .pagination .disabled { color:#94a3b8; cursor:not-allowed; }
+
+    /* responsive */
+    @media (max-width:1024px){
+      .layout { grid-template-columns: 1fr; grid-auto-rows:auto; height:auto; }
+      .panel { order:2; height:60vh; }
+      #map { height:50vh; order:1; }
+      .modal-body { grid-template-columns:1fr; }
+      .info { grid-template-columns:1fr; }
+      .stats-bar { justify-content:center; }
+    }
+    @media (max-width:640px){
+      .header { flex-direction:column; text-align:center; }
+      .filter-row { flex-direction:column; align-items:stretch; }
+      .date-range { flex-direction:column; align-items:stretch; }
+      .date-range label { white-space:normal; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <div class="title">🚨 Панель SOS-сигналов</div>
+        <div class="subtitle">Мониторинг экстренных вызовов в реальном времени</div>
+      </div>
+      <div class="subtitle">👤 {{ request.user.email }} (Администратор)</div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-icon total">📊</div>
+        <div>
+          <div class="stat-value" id="stat-total">{{ page_obj.paginator.count|default:sos_signals|length }}</div>
+          <div class="stat-label">Всего сигналов</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon active">🚨</div>
+        <div>
+          <div class="stat-value" id="stat-active">0</div>
+          <div class="stat-label">Активных</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon answered">✅</div>
+        <div>
+          <div class="stat-value" id="stat-answered">0</div>
+          <div class="stat-label">Обработано</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <form id="filters" method="get" class="filters" action="">
+          <div class="filter-row">
+            <select name="time" id="timeFilter" aria-label="Фильтр по времени" style="flex:2;">
+              <option value="hour" {% if time_filter == "hour" %}selected{% endif %}>⏱️ Последний час</option>
+              <option value="today" {% if time_filter == "today" or not time_filter %}selected{% endif %}>📅 Сегодня</option>
+              <option value="yesterday" {% if time_filter == "yesterday" %}selected{% endif %}>📆 Вчера</option>
+              <option value="custom" {% if time_filter == "custom" %}selected{% endif %}>📊 Произвольный период</option>
+              <option value="all" {% if time_filter == "all" %}selected{% endif %}>🗂️ Все время</option>
+            </select>
+            
+            <input type="search" name="q" placeholder="🔍 Поиск по email, имени или ID..." value="{{ search_query|default:'' }}" style="flex:2;" />
+          </div>
+          
+          <div class="filter-row date-range {% if time_filter == 'custom' %}visible{% endif %}" id="dateRange">
+            <label>От:</label>
+            <input type="date" name="date_from" value="{{ date_from|default:'' }}" />
+            <label>До:</label>
+            <input type="date" name="date_to" value="{{ date_to|default:'' }}" />
+          </div>
+          
+          <div class="filter-row">
+            <select name="service" aria-label="Фильтр по службе">
+              <option value="">— Все службы —</option>
+              <option value="скорая" {% if service_filter == "скорая" %}selected{% endif %}>🚑 Скорая помощь</option>
+              <option value="полиция" {% if service_filter == "полиция" %}selected{% endif %}>👮 Полиция</option>
+              <option value="пожарная" {% if service_filter == "пожарная" %}selected{% endif %}>🚒 Пожарные</option>
+              <option value="мчс" {% if service_filter == "мчс" %}selected{% endif %}>🆘 МЧС</option>
+            </select>
+            
+            <button type="submit" class="btn">Применить фильтры</button>
+            <a href="{% url 'sos-admin' %}" class="btn secondary" style="text-decoration:none; display:inline-flex; align-items:center;">Сбросить</a>
+          </div>
+        </form>
+
+        <div class="countline">
+          <div class="count">📋 Сигналы</div>
+          <div class="small">
+            {% if page_obj %}
+              Показано {{ page_obj.start_index }}–{{ page_obj.end_index }} из {{ page_obj.paginator.count }}
+            {% else %}
+              {{ sos_signals|length }} всего
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="sos-list" id="sosList">
+          {% if sos_signals %}
+            {% for s in sos_signals %}
+              <div class="sos-item" data-id="{{ s.id }}" data-lat="{{ s.latitude }}" data-lon="{{ s.longitude }}" data-status="{{ s.status|lower }}">
+                <div class="sos-left status-{{ s.status|lower }}">
+                  {% if s.service %}
+                    {{ s.service.name|slice:":1"|upper }}
+                  {% else %}
+                    S
+                  {% endif %}
+                </div>
+                <div class="sos-main">
+                  <div class="sos-top">
+                    <div style="min-width:0;">
+                      <div class="sos-id">#{{ s.id }}</div>
+                      <div class="sos-sender" title="{% if s.sender_user.first_name or s.sender_user.last_name %}{{ s.sender_user.first_name }} {{ s.sender_user.last_name }}{% else %}{{ s.sender_user.email }}{% endif %}">
+                        {% if s.sender_user.first_name or s.sender_user.last_name %}
+                          {{ s.sender_user.first_name }} {{ s.sender_user.last_name }}
+                        {% else %}
+                          {{ s.sender_user.email }}
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <div style="text-align:right; flex-shrink:0;">
+                      {% if s.service %}
+                        <div class="chip {% if "скорая" in s.service.name|lower %}ambulance{% elif "полиция" in s.service.name|lower %}police{% elif "пожар" in s.service.name|lower %}fire{% else %}unknown{% endif %}">
+                          {{ s.service.name }}
+                        </div>
+                      {% else %}
+                        <div class="chip unknown">Не указана</div>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="sos-meta">
+                    <div class="time">
+                      📅 {{ s.created_at|localtime|date:"d.m.Y H:i" }}
+                      <span class="status-badge {{ s.status|lower }}">
+                        {% if s.status == "ACTIVE" %}🚨 Активен
+                        {% elif s.status == "INACTIVE" %}⚪ Не активен
+                        {% elif s.status == "answered" %}✅ Обработан
+                        {% else %}{{ s.status }}{% endif %}
+                      </span>
+                    </div>
+                    <div class="coordinates">
+                      📍 {{ s.latitude|floatformat:6 }}, {{ s.longitude|floatformat:6 }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty">
+              <div class="empty-icon">📭</div>
+              <div>Сигналов не найдено</div>
+              <div style="font-size:13px; margin-top:8px;">Попробуйте изменить параметры фильтрации</div>
+            </div>
+          {% endif %}
+        </div>
+        
+        {% if page_obj and page_obj.paginator.num_pages > 1 %}
+        <div class="pagination">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}&time={{ time_filter }}&q={{ search_query|urlencode }}&service={{ service_filter }}&date_from={{ date_from }}&date_to={{ date_to }}">← Назад</a>
+          {% else %}
+            <span class="disabled">← Назад</span>
+          {% endif %}
+          
+          {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+              <span class="current">{{ num }}</span>
+            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+              <a href="?page={{ num }}&time={{ time_filter }}&q={{ search_query|urlencode }}&service={{ service_filter }}&date_from={{ date_from }}&date_to={{ date_to }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+          
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&time={{ time_filter }}&q={{ search_query|urlencode }}&service={{ service_filter }}&date_from={{ date_from }}&date_to={{ date_to }}">Вперед →</a>
+          {% else %}
+            <span class="disabled">Вперед →</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+
+      <div>
+        <div style="height:100%; display:flex; flex-direction:column; gap:12px;">
+          <div id="map"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# JSON от view #}
+  <script id="sos_data" type="application/json">
+    {{ sos_json|safe }}
+  </script>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+  (function(){
+    const log = (...a) => { try { console.log('[SOS]', ...a); } catch(e){} };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // читаем JSON
+      let sosList = [];
+      try {
+        const raw = document.getElementById('sos_data')?.textContent || '[]';
+        sosList = JSON.parse(raw);
+        if (!Array.isArray(sosList)) sosList = [];
+      } catch (e) {
+        log('Ошибка парсинга sos_data', e);
+        sosList = [];
+      }
+
+      // Обновляем статистику
+      const updateStats = () => {
+        const total = sosList.length;
+        const active = sosList.filter(s => s.status === 'ACTIVE').length;
+        const answered = sosList.filter(s => s.status === 'answered').length;
+        
+        document.getElementById('stat-total').textContent = total;
+        document.getElementById('stat-active').textContent = active;
+        document.getElementById('stat-answered').textContent = answered;
+      };
+      updateStats();
+
+      // parse timestamp helper
+      const parseTs = s => {
+        const t = s.created_at || s.createdAt || null;
+        const ms = t ? Date.parse(t) : 0;
+        return isNaN(ms) ? 0 : ms;
+      };
+      
+      // human friendly date + relative
+      const humanDate = (iso) => {
+        if (!iso) return '—';
+        const date = new Date(iso);
+        const now = Date.now();
+        const diff = Math.floor((now - date.getTime())/1000);
+        // relative
+        if (diff < 60) return 'только что';
+        if (diff < 3600) return `${Math.floor(diff/60)} мин. назад`;
+        if (diff < 86400) return `${Math.floor(diff/3600)} ч. назад`;
+        if (diff < 172800) return 'вчера';
+        // else formatted
+        return date.toLocaleString('ru-RU', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      };
+
+      // prepare markersData sorted old->new (so latest have higher zIndex)
+      const markersData = sosList.map(s => ({
+        id: String(s.id),
+        lat: Number(s.latitude),
+        lon: Number(s.longitude),
+        sender: s.sender ? ((s.sender.first_name || s.sender.last_name) ? `${s.sender.first_name||''} ${s.sender.last_name||''}`.trim() : s.sender.email) : '—',
+        sender_obj: s.sender || {},
+        status: s.status || 'INACTIVE',
+        service: s.service || '',
+        service_point: s.service_point || '',
+        created_at: s.created_at || '',
+        ts: parseTs(s),
+      }))
+      .filter(m => !Number.isNaN(m.lat) && !Number.isNaN(m.lon))
+      .sort((a,b) => (a.ts - b.ts)); // старые сначала
+
+      // create map
+      const defaultCenter = markersData.length ? [markersData[markersData.length-1].lat, markersData[markersData.length-1].lon] : [42.8746, 74.5698];
+      const defaultZoom = markersData.length ? 12 : 11;
+      const map = L.map('map', { center: defaultCenter, zoom: defaultZoom });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom:19, attribution:'© OpenStreetMap'
+      }).addTo(map);
+
+      // Status colors
+      const getStatusColor = (status) => {
+        switch(status) {
+          case 'ACTIVE': return '#ef4444';
+          case 'answered': return '#10b981';
+          case 'INACTIVE': return '#6b7280';
+          default: return '#274193';
+        }
+      };
+
+      // create markers with zIndexOffset using index
+      const markers = {};
+      markersData.forEach((d, idx) => {
+        const color = getStatusColor(d.status);
+        const isLatest = idx === markersData.length - 1;
+        const size = isLatest ? 18 : 14;
+        const pulse = isLatest ? 'animation:pulse 2s infinite;' : '';
+        
+        const icon = L.divIcon({
+          html: `<div style="background:${color}; width:${size}px; height:${size}px; border-radius:50%; box-shadow:0 0 0 6px rgba(243,157,170,0.25), 0 2px 8px rgba(0,0,0,0.3); ${pulse}"></div>`,
+          className:'',
+          iconSize: [size, size],
+          iconAnchor: [size/2, size/2]
+        });
+
+        const m = L.marker([d.lat,d.lon], { icon, zIndexOffset: idx * 50 }).addTo(map);
+
+        const serviceText = d.service || 'Служба не указана';
+        const statusText = d.status === 'ACTIVE' ? '🚨 Активен' : d.status === 'answered' ? '✅ Обработан' : '⚪ Не активен';
+        const popupHtml = `
+          <div style="min-width:240px; font-family:Inter,Arial,sans-serif; padding:8px;">
+            <div style="font-weight:700; color:var(--brand-blue); font-size:16px; margin-bottom:4px;">${d.sender}</div>
+            <div style="font-size:13px;color:#374151; margin-bottom:8px;">#${d.id} — ${serviceText}</div>
+            <div style="display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:${color}20; color:${color}; margin-bottom:8px;">${statusText}</div>
+            <div style="font-size:12px;color:#6b7280; margin-bottom:12px;">${humanDate(d.created_at)}</div>
+            <div style="display:flex; gap:8px;">
+              <button onclick="window.open('https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=18/${d.lat}/${d.lon}', '_blank')" style="background:#274193; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">Открыть в OSM</button>
+              <button onclick="window.open('https://www.google.com/maps?q=${d.lat},${d.lon}', '_blank')" style="background:#f1f5f9; color:#475569; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">Google Maps</button>
+            </div>
+          </div>
+        `;
+        m.bindPopup(popupHtml);
+        markers[d.id] = { marker: m, data: d };
+      });
+
+      // fit bounds
+      const markerList = Object.values(markers).map(o => o.marker);
+      if (markerList.length) {
+        const latlngs = markerList.map(m => m.getLatLng());
+        map.fitBounds(L.latLngBounds(latlngs).pad(0.15));
+      }
+
+      // Add pulse animation style
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.2); opacity: 0.8; }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // create modal DOM
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop';
+      backdrop.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true">
+          <div class="modal-header">
+            <div class="modal-title">📋 Детальная информация о сигнале</div>
+            <div><button id="modalX" style="background:transparent;border:0;font-size:28px;cursor:pointer;color:#6b7280; line-height:1;">&times;</button></div>
+          </div>
+          <div class="modal-body">
+            <div class="user-card">
+              <img id="modalAvatar" class="avatar" src="" alt="Аватар" />
+              <div id="modalUserName" class="user-name"></div>
+              <div id="modalUserRole" class="user-role"></div>
+            </div>
+            <div class="info">
+              <div class="meta-row">
+                <span class="meta-label">👤 Отправитель</span>
+                <div id="modalSender" class="meta-value highlight"></div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">📧 Email</span>
+                <div id="modalEmail" class="meta-value"></div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">📱 Телефон</span>
+                <div id="modalPhone" class="meta-value"></div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">🆔 Идентификатор</span>
+                <div id="modalIdent" class="meta-value"></div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">🆔 ID сигнала</span>
+                <div id="modalId" class="meta-value"></div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">📊 Статус</span>
+                <div id="modalStatus" class="meta-value"></div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">🚑 Служба</span>
+                <div id="modalService" class="meta-value"></div>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">📍 Точка обслуживания</span>
+                <div id="modalServicePoint" class="meta-value"></div>
+              </div>
+              <div class="meta-row" style="grid-column:1 / -1;">
+                <span class="meta-label">🕐 Время создания</span>
+                <div id="modalCreated" class="meta-value"></div>
+              </div>
+              <div class="meta-row" style="grid-column:1 / -1;">
+                <span class="meta-label">📍 Координаты</span>
+                <div id="modalCoords" class="meta-value"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn secondary" id="modalClose">Закрыть</button>
+            <button class="btn primary" id="modalOsm">Открыть в OpenStreetMap</button>
+            <button class="btn danger" id="modalGoogle">Открыть в Google Maps</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+
+      // show/hide modal helpers
+      const showModal = (d) => {
+        const avatar = document.getElementById('modalAvatar');
+        const userNameEl = document.getElementById('modalUserName');
+        const userRoleEl = document.getElementById('modalUserRole');
+        const senderEl = document.getElementById('modalSender');
+        const emailEl = document.getElementById('modalEmail');
+        const phoneEl = document.getElementById('modalPhone');
+        const identEl = document.getElementById('modalIdent');
+        const idEl = document.getElementById('modalId');
+        const statusEl = document.getElementById('modalStatus');
+        const serviceEl = document.getElementById('modalService');
+        const servicePointEl = document.getElementById('modalServicePoint');
+        const createdEl = document.getElementById('modalCreated');
+        const coordsEl = document.getElementById('modalCoords');
+
+        const s = d.sender_obj || {};
+        const name = (s.first_name || s.last_name) ? `${s.first_name || ''} ${s.last_name || ''}`.trim() : null;
+
+        avatar.src = s.avatar || '';
+        avatar.style.display = s.avatar ? 'block' : 'none';
+        avatar.style.margin = s.avatar ? '0 auto 12px' : '0';
+
+        userNameEl.textContent = name || s.email || 'Неизвестно';
+        userRoleEl.textContent = s.role || 'Пользователь';
+        
+        senderEl.textContent = name || s.email || '—';
+        emailEl.textContent = s.email || '—';
+        phoneEl.textContent = s.phone_number || '—';
+        identEl.textContent = s.identifier || '—';
+
+        idEl.textContent = `#${d.id}`;
+        
+        const statusColors = {
+          'ACTIVE': ['#ef4444', '🚨 АКТИВЕН'],
+          'answered': ['#10b981', '✅ Обработан'],
+          'INACTIVE': ['#6b7280', '⚪ Не активен']
+        };
+        const [statusColor, statusText] = statusColors[d.status] || ['#274193', d.status];
+        statusEl.innerHTML = `<span style="color:${statusColor}; font-weight:700;">${statusText}</span>`;
+        
+        serviceEl.textContent = d.service || 'Не указана';
+        servicePointEl.textContent = d.service_point || 'Не указана';
+        createdEl.textContent = (d.created_at ? (new Date(d.created_at)).toLocaleString('ru-RU', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '—') + ` (${humanDate(d.created_at)})`;
+        coordsEl.textContent = `${d.lat.toFixed(6)}, ${d.lon.toFixed(6)}`;
+
+        // Map buttons action
+        document.getElementById('modalOsm').onclick = () => {
+          window.open(`https://www.openstreetmap.org/?mlat=${d.lat}&mlon=${d.lon}#map=18/${d.lat}/${d.lon}`, '_blank');
+        };
+        document.getElementById('modalGoogle').onclick = () => {
+          window.open(`https://www.google.com/maps?q=${d.lat},${d.lon}`, '_blank');
+        };
+
+        backdrop.style.display = 'flex';
+      };
+      
+      const hideModal = () => backdrop.style.display = 'none';
+      document.getElementById('modalClose')?.addEventListener('click', hideModal);
+      document.getElementById('modalX')?.addEventListener('click', hideModal);
+      backdrop.addEventListener('click', (e)=> { if (e.target === backdrop) hideModal(); });
+
+      // Date range visibility toggle
+      const timeFilter = document.getElementById('timeFilter');
+      const dateRange = document.getElementById('dateRange');
+      timeFilter?.addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+          dateRange.classList.add('visible');
+        } else {
+          dateRange.classList.remove('visible');
+        }
+      });
+
+      // list click handler: center, open popup, open modal
+      const listEl = document.getElementById('sosList');
+      const clearActive = () => listEl.querySelectorAll('.sos-item.active').forEach(x=>x.classList.remove('active'));
+
+      listEl.addEventListener('click', (e) => {
+        const el = e.target.closest('.sos-item');
+        if (!el) return;
+        const id = el.getAttribute('data-id');
+        const lat = Number(el.getAttribute('data-lat'));
+        const lon = Number(el.getAttribute('data-lon'));
+        if (!id) return;
+
+        // highlight
+        clearActive();
+        el.classList.add('active');
+
+        // center and open popup if marker exists
+        const rec = markers[id];
+        if (rec && rec.marker) {
+          rec.marker.openPopup();
+          map.setView([lat, lon], 17, { animate:true });
+        } else {
+          map.setView([lat, lon], 17, { animate:true });
+        }
+
+        // open modal with full info
+        const dataObj = (markers[id] && markers[id].data) || markersData.find(x => x.id === id);
+        if (dataObj) showModal(dataObj);
+      });
+
+      // optionally auto-open last ACTIVE signal's popup and highlight in list
+      const activeSignals = markersData.filter(m => m.status === 'ACTIVE');
+      const last = activeSignals.length > 0 ? activeSignals[activeSignals.length - 1] : (markersData.length ? markersData[markersData.length - 1] : null);
+      
+      if (last) {
+        // highlight corresponding list element
+        const el = document.querySelector(`.sos-item[data-id="${last.id}"]`);
+        if (el) {
+          el.classList.add('active');
+          el.scrollIntoView({ behavior:'smooth', block:'center' });
+        }
+        // open popup of last marker
+        const rec = markers[last.id];
+        if (rec && rec.marker) {
+          rec.marker.openPopup();
+          map.setView([last.lat, last.lon], 16, { animate:true });
+        }
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

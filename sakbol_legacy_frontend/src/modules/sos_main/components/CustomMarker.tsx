@@ -1,5 +1,5 @@
 import { Marker } from "react-leaflet";
-import L from "leaflet";
+import * as L from "leaflet";
 
 interface ComponentProps {
   position: [number, number];
@@ -11,7 +11,8 @@ function CustomMarker({ position, avatar = "", isUser = false }: ComponentProps)
   // Текст, если нет аватарки
   const fallbackText = isUser ? "Вы" : "Нет фото";
 
-  const icon = L.divIcon({
+  // @ts-ignore - divIcon exists in leaflet but types are not properly exported
+  const customIcon: L.DivIcon = L.divIcon({
     className: "custom-marker",
     html: `
       <div style="position: relative; width: 81px; height: 93px;">
@@ -48,7 +49,8 @@ function CustomMarker({ position, avatar = "", isUser = false }: ComponentProps)
     iconAnchor: [8, 8],
   });
 
-  return <Marker position={position} icon={icon} />;
+  // @ts-ignore - icon prop exists in MarkerOptions but react-leaflet types don't include it
+  return <Marker position={position} icon={customIcon} />;
 }
 
 export default CustomMarker;
