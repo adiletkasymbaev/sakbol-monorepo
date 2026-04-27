@@ -25,7 +25,7 @@ export interface TourGroup {
 // Детали группы
 export interface TourGroupDetail extends TourGroup {
   members: TourGroupMemberItem[];
-  zones: TourZoneItem[];
+  zones: TourZone[];
   active_session: TourSession | null;
 }
 
@@ -39,6 +39,9 @@ export interface TourGroupMemberItem {
     last_name: string;
     identifier: string | null;
     avatar: string | null;
+    phone_number: string | null;
+    is_online: boolean;
+    last_seen: string | null;
   };
   status: MemberStatus;
   joined_at: string;
@@ -49,10 +52,8 @@ export interface TourGroupMemberItem {
 export interface TourGroupMember {
   id: number;
   user: {
-    user: {
-      id: number;
-      email: string;
-    };
+    id: number;
+    email: string;
     first_name: string;
     last_name: string;
     identifier: string | null;
@@ -68,6 +69,9 @@ export interface TourZoneItem {
   id: number;
   name: string;
   description: string;
+  polygon?: Array<{ lat: number; lng: number }>;
+  center_lat?: number;
+  center_lng?: number;
   is_active: boolean;
   created_at: string;
 }
@@ -176,6 +180,8 @@ export interface MemberLocation {
   longitude: number;
   is_online: boolean;
   last_seen: string | null;
+  is_agent?: boolean;
+  phone_number?: string | null;
 }
 
 // Информация о группе для вступления (публичная)

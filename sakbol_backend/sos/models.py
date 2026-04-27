@@ -109,6 +109,27 @@ class Geofence(models.Model):
         return f"{self.name} (parent={self.parent_id})"
 
 
+class Notification(models.Model):
+    """In-app notification for SOS/Alert signals and their answers."""
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', verbose_name='Получатель')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_notifications', verbose_name='Отправитель')
+    notification_type = models.CharField(max_length=20, verbose_name='Тип')  # alert_signal, sos_signal, alert_answered, sos_answered, alert_escalated
+    title = models.CharField(max_length=255, verbose_name='Заголовок')
+    body = models.TextField(verbose_name='Текст')
+    alert_signal = models.ForeignKey(AlertSignal, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications', verbose_name='Предупреждающий сигнал')
+    sos_signal = models.ForeignKey(SosSignal, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications', verbose_name='SOS-сигнал')
+    is_read = models.BooleanField(default=False, verbose_name='Прочитано')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+
+    class Meta:
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.notification_type}] {self.recipient.email}: {self.title}"
+
+
 class GeofenceState(models.Model):
     geofence = models.ForeignKey(
         Geofence,

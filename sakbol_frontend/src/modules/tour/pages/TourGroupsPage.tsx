@@ -11,8 +11,10 @@ import NavBar from "../../../shared/components/NavBar";
 import useTour from "../../../store/useTour";
 import useAuth from "../../../store/useAuth";
 import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
+import { useTranslation } from "react-i18next";
 
 export default function TourGroupsPage() {
+  const { t } = useTranslation();
   const { groups, isGroupsLoading, fetchGroups, dismissGroup } = useTour();
   const userRole = useAuth((state) => state.userRole);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -22,12 +24,12 @@ export default function TourGroupsPage() {
   }, []);
 
   const handleDismiss = async (id: string) => {
-    if (!confirm("Вы уверены, что хотите распустить группу?")) return;
+    if (!confirm(t('tour.groups.dismissConfirm'))) return;
 
     await dismissGroup(id);
     addToast({
       title: ToastTypes.OK,
-      description: "Группа распущена",
+      description: t('tour.groups.dismissed'),
       color: "success",
     });
   };
@@ -37,7 +39,7 @@ export default function TourGroupsPage() {
     fetchGroups();
     addToast({
       title: ToastTypes.OK,
-      description: "Группа создана",
+      description: t('tour.groups.created'),
       color: "success",
     });
   };
@@ -49,14 +51,14 @@ export default function TourGroupsPage() {
     <>
       <div className="page-wrapper">
         <div className="flex justify-between items-center mb-4">
-          <Heading>Мои группы</Heading>
+          <Heading>{t('tour.groups.title')}</Heading>
           {isTourAgent && (
             <Button
               color="primary"
               size="md"
               onPress={() => setIsCreateModalOpen(true)}
             >
-              + Создать группу
+              {t('tour.groups.create')}
             </Button>
           )}
         </div>
@@ -81,7 +83,7 @@ export default function TourGroupsPage() {
           onClose={() => setIsCreateModalOpen(false)}
         >
           <ModalContent>
-            <ModalHeader>Создать новую группу</ModalHeader>
+            <ModalHeader>{t('tour.groups.createNew')}</ModalHeader>
             <ModalBody className="pb-[100px]">
               <CreateTourGroupForm
                 onSuccess={handleGroupCreated}

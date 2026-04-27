@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from accounts.models import Profile, User
 from accounts.serializers import ProfileMiniSerializer, SimpleUserSerializer
-from .models import Contact, Location, Geofence, SosSignal, AlertSignal, AlertSignalAnswer
+from .models import Contact, Location, Geofence, SosSignal, AlertSignal, AlertSignalAnswer, Notification
 from .permissions import parent_has_child_contact
 from .geofence_service import check_geofences_on_location_update
 
@@ -342,3 +342,35 @@ class AlertSignalAnswerCreateSerializer(serializers.Serializer):
             responder_user=request.user,
         )
         return answer
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    sender_name = serializers.SerializerMethodField()
+    sender_avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = (
+            "id", "recipient", "sender", "sender_name", "sender_avatar",
+            "notification_type", "title", "body",
+            "alert_signal", "sos_signal", "is_read", "created_at",
+        )
+        read_only_fields = fields
+
+    def get_sender_name(self, obj):
+        if not obj.sender:
+            return None
+        try:
+            profile = obj.sender.profile
+            return f"{profile.first_name} {profile.last_name}".strip() or obj.sender.email
+        except Exception:
+            return obj.sender.email
+
+    def get_sender_avatar(self, obj):
+        if not obj.sender:
+            return None
+        try:
+            profile = obj.sender.profile
+            return profile.avatar.url if profile.avatar else None
+        except Exception:
+            return None

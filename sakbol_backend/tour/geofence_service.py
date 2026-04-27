@@ -2,6 +2,7 @@ from django.utils import timezone
 from shapely.geometry import Point, Polygon
 from push.service import push_to_user
 from .models import TourGroupMember, TourSession, TourZone, ZoneViolation, MemberStatus, TourStatus
+from shared.enums import ProfileRole
 
 
 def is_point_inside_polygon(lat, lng, polygon_points):
@@ -50,33 +51,46 @@ def check_member_location(member, latitude, longitude):
         is_active=True
     )
 
-    # Проверяем каждую зону
+    # Проверяем, находится ли участник хотя бы в одной зоне
+    is_inside_any = False
+    outside_zones = []
+
     for zone in active_zones:
         is_inside = is_point_inside_polygon(
             latitude,
             longitude,
             zone.polygon
         )
+        if is_inside:
+            is_inside_any = True
+        else:
+            outside_zones.append(zone)
 
-        if not is_inside:
-            # Создаем нарушение
+    # Нарушение только если участник вне ВСЕХ зон
+    if not is_inside_any:
+        for zone in outside_zones:
             violation, created = ZoneViolation.objects.get_or_create(
                 session=active_session,
                 member=member,
                 zone=zone,
-                latitude=latitude,
-                longitude=longitude,
-                defaults={'is_resolved': False}
+                defaults={
+                    'is_resolved': False,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                }
             )
 
             if created:
-                # Отправляем уведомление тур-агенту
                 send_violation_notification(
                     agent=member.group.agent,
                     member=member,
                     zone=zone,
                     session=active_session
                 )
+            elif not violation.is_resolved:
+                violation.latitude = latitude
+                violation.longitude = longitude
+                violation.save(update_fields=['latitude', 'longitude'])
 
 
 def send_violation_notification(agent, member, zone, session):
@@ -142,7 +156,7 @@ def get_active_session_for_user(user):
         TourSession или None
     """
     # Для тур-агента
-    if user.role == 'TOUR_AGENCY':
+    if user.role == ProfileRole.TOUR_AGENCY.value:
         return TourSession.objects.filter(
             group__agent=user,
             status=TourStatus.ACTIVE

@@ -7,8 +7,10 @@ import СontactsPendingList from '../components/СontactsPendingList';
 import { useEffect } from "react";
 import { useContacts } from "../../../store/useContacts";
 import ContactsAcceptedList from "../components/ContactsAcceptedList";
+import { useTranslation } from "react-i18next";
 
 function ContactsPage() {
+    const { t } = useTranslation();
     const {
         getPending,
         getAccepted,
@@ -24,17 +26,17 @@ function ContactsPage() {
     const content = (
         <div className="page-wrapper">
             <Heading variant="card">
-                Контакты
+                {t('contacts.title')}
             </Heading>
             <Margin direction="b" value={2.5}/>
             <AddContactForm/>
             <Margin direction="b" value={6}/>
 
             <Tabs aria-label="Options">
-                <Tab key="Контакты" title="Контакты">
+                <Tab key="Контакты" title={t('contacts.tabs.contacts')}>
                     <ContactsAcceptedList/>
                 </Tab>
-                <Tab key="Заявки" title="Заявки">
+                <Tab key="Заявки" title={t('contacts.tabs.requests')}>
                     <СontactsPendingList/>
                 </Tab>
             </Tabs>

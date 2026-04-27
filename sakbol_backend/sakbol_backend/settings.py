@@ -38,6 +38,15 @@ VAPID_ADMIN_EMAIL = "mailto:adikokey@mail.ru"
 # FIREBASE CLOUD MESSAGING
 FIREBASE_CREDENTIALS = str(BASE_DIR / "firebase_config.json")
 
+# EMAIL CONFIGURATION (Console for dev)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'adiletkasymbaev2005@gmail.com'        # ← Your Gmail
+EMAIL_HOST_PASSWORD = 'qjxv gisn tojm jzpa'     # ← App Password (16 chars)
+DEFAULT_FROM_EMAIL = 'Sakbol'
+
 # Application definition
 
 INSTALLED_APPS = [

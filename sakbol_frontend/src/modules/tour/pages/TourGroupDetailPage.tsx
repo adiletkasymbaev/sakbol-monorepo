@@ -26,11 +26,13 @@ import TourSessionsList from "../components/TourSessionsList";
 import CreateTourZoneForm from "../components/CreateTourZoneForm";
 import useAuth from "../../../store/useAuth";
 import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
+import { useTranslation } from "react-i18next";
 
 export default function TourGroupDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { selectedGroup, fetchGroupDetail, fetchZones, fetchSessions, dismissGroup } = useTour();
+  const { selectedGroup, fetchGroupDetail, fetchZones, fetchSessions, dismissGroup, zones } = useTour();
   const userRole = useAuth((state) => state.userRole);
   const [activeTab, setActiveTab] = useState<string>("map");
   const [isCreateZoneModalOpen, setIsCreateZoneModalOpen] = useState(false);
@@ -52,18 +54,18 @@ export default function TourGroupDetailPage() {
     setIsCreateZoneModalOpen(false);
     addToast({
       title: ToastTypes.OK,
-      description: "Зона создана",
+      description: t('tour.groupDetail.zoneCreated'),
       color: "success",
     });
   };
 
   const handleDismiss = async () => {
-    if (!confirm("Вы уверены, что хотите распустить группу?")) return;
+    if (!confirm(t('tour.groups.dismissConfirm'))) return;
     if (id) {
       await dismissGroup(id);
       addToast({
         title: ToastTypes.OK,
-        description: "Группа распущена",
+        description: t('tour.groups.dismissed'),
         color: "success",
       });
       navigate("/tour/groups");
@@ -98,11 +100,11 @@ export default function TourGroupDetailPage() {
               variant="flat"
               color={selectedGroup.is_active ? "success" : "default"}
             >
-              {selectedGroup.is_active ? "Активна" : "Не активна"}
+              {selectedGroup.is_active ? t('tour.groupDetail.active') : t('tour.groupDetail.inactive')}
             </Chip>
             {selectedGroup.has_active_session && (
               <Chip variant="flat" color="warning">
-                Идет тур
+                {t('tour.groupDetail.tourInProgress')}
               </Chip>
             )}
           </div>
@@ -116,7 +118,7 @@ export default function TourGroupDetailPage() {
                 <div className="text-2xl font-bold text-primary">
                   {selectedGroup.active_members_count ?? selectedGroup.members?.filter(m => m.status === 'active').length ?? 0}
                 </div>
-                <div className="text-xs text-default-500">Участников</div>
+                <div className="text-xs text-default-500">{t('tour.groupDetail.members')}</div>
               </div>
             </CardBody>
           </Card>
@@ -126,7 +128,7 @@ export default function TourGroupDetailPage() {
                 <div className="text-2xl font-bold text-secondary">
                   {selectedGroup.zones_count ?? selectedGroup.zones?.length ?? 0}
                 </div>
-                <div className="text-xs text-default-500">Зон</div>
+                <div className="text-xs text-default-500">{t('tour.groupDetail.zones')}</div>
               </div>
             </CardBody>
           </Card>
@@ -136,7 +138,7 @@ export default function TourGroupDetailPage() {
                 <div className="text-2xl font-bold text-warning">
                   {selectedGroup.pending_members_count ?? selectedGroup.members?.filter(m => m.status === 'pending').length ?? 0}
                 </div>
-                <div className="text-xs text-default-500">Заявок</div>
+                <div className="text-xs text-default-500">{t('tour.groupDetail.requests')}</div>
               </div>
             </CardBody>
           </Card>
@@ -146,7 +148,7 @@ export default function TourGroupDetailPage() {
                 <div className="text-2xl font-bold text-success">
                   {selectedGroup.members?.length || 0}
                 </div>
-                <div className="text-xs text-default-500">Всего</div>
+                <div className="text-xs text-default-500">{t('tour.groupDetail.total')}</div>
               </div>
             </CardBody>
           </Card>
@@ -156,7 +158,7 @@ export default function TourGroupDetailPage() {
         <Card className="mb-4 bg-pale-secondary">
           <CardBody className="flex flex-row items-center justify-between gap-3">
             <div className="flex-1">
-              <p className="text-sm font-medium">Пригласительная ссылка</p>
+              <p className="text-sm font-medium">{t('tour.groupDetail.inviteLink')}</p>
               <p className="text-xs text-default-600 truncate">
                 {selectedGroup.invite_link}
               </p>
@@ -168,12 +170,12 @@ export default function TourGroupDetailPage() {
                 navigator.clipboard.writeText(selectedGroup.invite_link);
                 addToast({
                   title: ToastTypes.OK,
-                  description: "Ссылка скопирована",
+                  description: t('tour.groupDetail.linkCopied'),
                   color: "success",
                 });
               }}
             >
-              Копировать
+              {t('tour.groupDetail.copyLink')}
             </Button>
           </CardBody>
         </Card>
@@ -184,19 +186,19 @@ export default function TourGroupDetailPage() {
           onSelectionChange={(key) => setActiveTab(key as string)}
           className="mb-4"
         >
-          <Tab key="map" title="Карта">
+          <Tab key="map" title={t('tour.groupDetail.map')}>
             <TourGroupMap
-              zones={selectedGroup.zones || []}
+              zones={zones}
               groupId={id || ""}
             />
           </Tab>
-          <Tab key="members" title={`Участники (${selectedGroup.members?.length || 0})`}>
+          <Tab key="members" title={`${t('tour.groupDetail.membersTab')} (${selectedGroup.members?.length || 0})`}>
             <TourMembersList groupId={id || ""} />
           </Tab>
-          <Tab key="zones" title={`Зоны (${selectedGroup.zones?.length || 0})`}>
+          <Tab key="zones" title={`${t('tour.groupDetail.zonesTab')} (${selectedGroup.zones?.length || 0})`}>
             <TourZonesList groupId={id || ""} />
           </Tab>
-          <Tab key="sessions" title="Туры">
+          <Tab key="sessions" title={t('tour.groupDetail.toursTab')}>
             <TourSessionsList groupId={id || ""} />
           </Tab>
         </Tabs>
@@ -208,26 +210,14 @@ export default function TourGroupDetailPage() {
               variant="bordered"
               onPress={() => setIsCreateZoneModalOpen(true)}
             >
-              + Добавить зону
-            </Button>
-            <Button
-              variant="bordered"
-              onPress={() => {
-                addToast({
-                  title: ToastTypes.ERR,
-                  description: "Создание туров в разработке",
-                  color: "warning",
-                });
-              }}
-            >
-              + Создать тур
+              {t('tour.groupDetail.addZone')}
             </Button>
             <Button
               color="danger"
               variant="light"
               onPress={handleDismiss}
             >
-              Распустить группу
+              {t('tour.groupDetail.dismissGroup')}
             </Button>
           </div>
         )}
@@ -243,7 +233,7 @@ export default function TourGroupDetailPage() {
         size="4xl"
       >
         <ModalContent>
-          <ModalHeader>Создать новую зону</ModalHeader>
+          <ModalHeader>{t('tour.groupDetail.createNewZone')}</ModalHeader>
           <ModalBody>
             <CreateTourZoneForm
               groupId={id || ""}

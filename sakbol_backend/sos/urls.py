@@ -1,12 +1,13 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
-from .views import ContactViewSet, ContactsLocationsView, GeofenceViewSet, LocationUpdateView, SosSignalViewSet, AlertSignalViewSet
+from .views import ContactViewSet, ContactsLocationsView, GeofenceViewSet, LocationUpdateView, SosSignalViewSet, AlertSignalViewSet, NotificationViewSet
 
 router = DefaultRouter()
 router.register(r"contacts", ContactViewSet, basename="contact")
 router.register(r"geofences", GeofenceViewSet, basename="geofence")
 router.register(r"sos", SosSignalViewSet, basename="sos")
 router.register(r"alerts", AlertSignalViewSet, basename="alert")
+router.register(r"notifications", NotificationViewSet, basename="notification")
 
 urlpatterns = [
     path("contacts_module/", include(router.urls)),

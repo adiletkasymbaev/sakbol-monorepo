@@ -1,11 +1,6 @@
-import { useEffect, useState } from "react";
-import { Card, CardBody, Button, Chip, Skeleton, Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/react";
-import { addToast } from "@heroui/react";
-import { ToastTypes } from "../../../shared/enums/ToastTypes";
+import { useEffect } from "react";
+import { Card, CardBody, Chip, Skeleton } from "@heroui/react";
 import useTour from "../../../store/useTour";
-import useAuth from "../../../store/useAuth";
-import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
-import CreateTourZoneForm from "./CreateTourZoneForm";
 import type { TourZoneItem } from "../../../shared/types/tour";
 
 interface TourZonesListProps {
@@ -14,23 +9,10 @@ interface TourZonesListProps {
 
 export default function TourZonesList({ groupId }: TourZonesListProps) {
   const { zones, isZonesLoading, fetchZones } = useTour();
-  const userRole = useAuth((state) => state.userRole);
-  const isAgent = userRole === ProfileRoles.TOUR_AGENCY;
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     fetchZones(groupId);
   }, [groupId]);
-
-  const handleZoneCreated = () => {
-    setIsCreateModalOpen(false);
-    fetchZones(groupId);
-    addToast({
-      title: ToastTypes.OK,
-      description: "Зона создана",
-      color: "success",
-    });
-  };
 
   if (isZonesLoading) {
     return (
@@ -52,36 +34,15 @@ export default function TourZonesList({ groupId }: TourZonesListProps) {
     return (
       <div className="text-center py-8 text-default-500">
         <p>В группе пока нет зон</p>
-        {isAgent && (
-          <Button
-            size="sm"
-            color="primary"
-            variant="light"
-            onPress={() => setIsCreateModalOpen(true)}
-          >
-            + Создать зону
-          </Button>
-        )}
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-between items-center mb-2">
-        <p className="text-sm text-default-600">
-          Зоны определяют безопасную территорию для туристов
-        </p>
-        {isAgent && (
-          <Button
-            size="sm"
-            color="primary"
-            onPress={() => setIsCreateModalOpen(true)}
-          >
-            + Добавить зону
-          </Button>
-        )}
-      </div>
+      <p className="text-sm text-default-600 mb-2">
+        Зоны определяют безопасную территорию для туристов
+      </p>
 
       {zones.map((zone: TourZoneItem) => (
         <Card key={zone.id}>
@@ -104,24 +65,6 @@ export default function TourZonesList({ groupId }: TourZonesListProps) {
           </CardBody>
         </Card>
       ))}
-
-      {/* Modal создания зоны */}
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        size="2xl"
-      >
-        <ModalContent>
-          <ModalHeader>Создать новую зону</ModalHeader>
-          <ModalBody>
-            <CreateTourZoneForm
-              groupId={groupId}
-              onSuccess={handleZoneCreated}
-              onCancel={() => setIsCreateModalOpen(false)}
-            />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
     </div>
   );
 }

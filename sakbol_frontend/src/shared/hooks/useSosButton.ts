@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ToastTypes } from "../enums/ToastTypes";
 import { getGeolocation } from "../utils/getGeolocation";
 import { alertsService, sosService } from "../services/sosService";
+import { useTranslation } from "react-i18next";
 
 type Options = {
   longPressMs?: number;
@@ -10,6 +11,7 @@ type Options = {
 };
 
 export function useSosButton(options: Options = {}) {
+  const { t } = useTranslation();
   const LONG_PRESS_MS = options.longPressMs ?? 3000;
   const TRIPLE_CLICK_WINDOW_MS = options.tripleClickWindowMs ?? 600;
 
@@ -51,22 +53,22 @@ export function useSosButton(options: Options = {}) {
       await getGeolocation(
         {
           onSuccess: async (result) => {
-            await sosService.create({
+            await alertsService.create({
               latitude: result.latitude,
               longitude: result.longitude,
             });
 
             addToast({
-              title: "Экстренный СОС-сигнал",
-              description: "Сигнал отправлен ближайшим мед. учреждениям",
+              title: t('sos.button.label'),
+              description: t('sos.button.sentToContacts'),
               color: "warning",
             });
           },
           onError: (error) => {
-            console.error("Геолокация ошибка:", error);
+            console.error(t('sos.errors.geolocationError'), error);
             addToast({
               title: ToastTypes.ERR,
-              description: "Не удалось получить геолокацию",
+              description: t('sos.errors.geolocation'),
               color: "danger",
             });
           },
@@ -77,7 +79,7 @@ export function useSosButton(options: Options = {}) {
       console.error("Ошибка при отправке SOS:", err);
       addToast({
         title: ToastTypes.ERR,
-        description: "Не удалось отправить SOS-сигнал — проверьте соединение",
+        description: t('sos.errors.sendFailed'),
         color: "danger",
       });
     }
@@ -94,8 +96,8 @@ export function useSosButton(options: Options = {}) {
             });
 
             addToast({
-              title: "СОС-сигнал",
-              description: "Сигнал отправлен вашим избранным контактам",
+              title: t('sos.button.label'),
+              description: t('sos.button.sentToContacts'),
               color: "warning",
             });
 
@@ -103,10 +105,10 @@ export function useSosButton(options: Options = {}) {
             window.setTimeout(() => setProgress(0), 300);
           },
           onError: (error) => {
-            console.error("Геолокация ошибка:", error);
+            console.error(t('sos.errors.geolocationError'), error);
             addToast({
               title: ToastTypes.ERR,
-              description: "Не удалось получить геолокацию",
+              description: t('sos.errors.geolocation'),
               color: "danger",
             });
           },
@@ -117,7 +119,7 @@ export function useSosButton(options: Options = {}) {
       console.error("Ошибка при отправке SOS regular:", err);
       addToast({
         title: ToastTypes.ERR,
-        description: "Не удалось отправить SOS-сигнал — проверьте соединение",
+        description: t('sos.errors.sendFailed'),
         color: "danger",
       });
     }

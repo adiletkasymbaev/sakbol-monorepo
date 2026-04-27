@@ -13,7 +13,17 @@ export type RegisterPostBody = {
   phone_number: string;
 }
 
-export type RegisterResponse = {
+export type RegisterCreatedResponse = {
+  email: string;
+  detail: string;
+}
+
+export type VerifyEmailBody = {
+  email: string;
+  code: string;
+}
+
+export type TokenResponse = {
   refresh: string,
   access: string,
   user_id: number,

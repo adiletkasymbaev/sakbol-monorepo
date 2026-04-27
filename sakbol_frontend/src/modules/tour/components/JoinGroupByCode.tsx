@@ -3,12 +3,14 @@ import { Button, Input } from "@heroui/react";
 import { addToast } from "@heroui/react";
 import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import useTour from "../../../store/useTour";
+import { useTranslation } from "react-i18next";
 
 interface JoinGroupByCodeProps {
   onSuccess?: () => void;
 }
 
 export default function JoinGroupByCode({ onSuccess }: JoinGroupByCodeProps) {
+  const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { joinByCode } = useTour();
@@ -17,7 +19,7 @@ export default function JoinGroupByCode({ onSuccess }: JoinGroupByCodeProps) {
     if (!code.trim() || code.length !== 6) {
       addToast({
         title: ToastTypes.ERR,
-        description: "Код должен содержать 6 символов",
+        description: t('tour.joinByCode.codeLength'),
         color: "danger",
       });
       return;
@@ -30,7 +32,7 @@ export default function JoinGroupByCode({ onSuccess }: JoinGroupByCodeProps) {
     if (result) {
       addToast({
         title: ToastTypes.OK,
-        description: "Заявка на вступление отправлена",
+        description: t('tour.joinByCode.requestSent'),
         color: "success",
       });
       setCode("");
@@ -38,7 +40,7 @@ export default function JoinGroupByCode({ onSuccess }: JoinGroupByCodeProps) {
     } else {
       addToast({
         title: ToastTypes.ERR,
-        description: "Неверный код приглашения",
+        description: t('tour.joinByCode.invalidCode'),
         color: "danger",
       });
     }
@@ -46,7 +48,7 @@ export default function JoinGroupByCode({ onSuccess }: JoinGroupByCodeProps) {
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-pale-secondary rounded-lg">
-      <p className="text-sm font-medium">Вступить в группу по коду</p>
+      <p className="text-sm font-medium">{t('tour.joinByCode.title')}</p>
       <div className="flex gap-2">
         <Input
           value={code}
@@ -61,11 +63,11 @@ export default function JoinGroupByCode({ onSuccess }: JoinGroupByCodeProps) {
           isLoading={isLoading}
           onPress={handleJoin}
         >
-          Вступить
+          {t('tour.joinByCode.joinButton')}
         </Button>
       </div>
       <p className="text-xs text-default-600">
-        Введите 6-значный код из пригласительной ссылки
+        {t('tour.joinByCode.placeholder')}
       </p>
     </div>
   );

@@ -52,7 +52,7 @@ export default function BottomSheet({ children, isOpen, setOpen }: ComponentProp
         <div className="bg-white w-full h-3 relative">
           <div className="absolute -top-16 left-2 flex gap-3">
             <MyLocationButton/>
-            {((userRole === ProfileRoles.PARENT || userRole === ProfileRoles.TOUR_AGENCY) && isOpen === false) && (
+            {((userRole === ProfileRoles.PARENT) && isOpen === false) && (
               <EditZoneButton/>
             )}
           </div>

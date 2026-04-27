@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from sos.models import AlertSignal, AlertSignalAnswer, Contact, Location, SosSignal
-from sos.models import Geofence, GeofenceState
+from sos.models import Geofence, GeofenceState, Notification
 
 
 admin.site.register(Contact)
 admin.site.register(Location)
+admin.site.register(Notification)
 
 
 @admin.register(AlertSignal)

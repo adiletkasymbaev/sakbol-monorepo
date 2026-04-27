@@ -1,17 +1,22 @@
 import { useEffect, useRef } from "react";
 import { tourService } from "../../../shared/services/tourService";
 import useAuth from "../../../store/useAuth";
+import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
 
 /**
  * Компонент для фонового обновления местоположения во время активного тура.
  * Отправляет координаты на бэкенд каждые 30 секунд.
+ * Работает ТОЛЬКО для туристов (tourist/user) с активной ролью.
  */
 export default function TourLocationUpdater() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const userId = useAuth((state) => state.userId);
+  const userRole = useAuth((state) => state.userRole);
+
+  const isTourist = userRole === ProfileRoles.TOURIST || userRole === ProfileRoles.USER;
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !isTourist) return;
 
     // Функция получения и отправки геолокации
     const updateLocation = async () => {
@@ -49,7 +54,7 @@ export default function TourLocationUpdater() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [userId]);
+  }, [userId, isTourist]);
 
   return null; // Этот компонент ничего не рендерит
 }

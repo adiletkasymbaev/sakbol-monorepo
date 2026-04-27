@@ -1,6 +1,7 @@
 export const API_ENDPOINTS = {
   AUTH: {
     REGISTER: "/accounts/register/",
+    VERIFY_EMAIL: "/accounts/verify-email/",
     LOGIN: "/accounts/login/",
     REFRESH: "/accounts/refresh/",
   },
@@ -8,6 +9,13 @@ export const API_ENDPOINTS = {
   PROFILE: {
     ME: "/accounts/profile/me/",
     AVATAR: "/accounts/profile/avatar/",
+  },
+
+  SECURITY: {
+    PASSWORD_REQ: "/accounts/password/change/request/",
+    PASSWORD_VERIFY: "/accounts/password/change/verify/",
+    EMAIL_REQ: "/accounts/email/change/request/",
+    EMAIL_VERIFY: "/accounts/email/change/verify/",
   },
 
   CONTACTS: {
@@ -29,6 +37,7 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/general/contacts_module/sos/${id}/`,
     ACTIVATE: (id: number) => `/general/contacts_module/sos/${id}/activate/`,
     DEACTIVATE: (id: number) => `/general/contacts_module/sos/${id}/deactivate/`,
+    ANSWER: (id: number) => `/general/contacts_module/sos/${id}/answer/`,
   },
 
   ALERTS: {
@@ -36,6 +45,14 @@ export const API_ENDPOINTS = {
     BY_ID: (id: number) => `/general/contacts_module/alerts/${id}/`,
     ANSWER: (id: number) => `/general/contacts_module/alerts/${id}/answer/`,
     ANSWERS: (id: number) => `/general/contacts_module/alerts/${id}/answers/`,
+  },
+
+  NOTIFICATIONS: {
+    LIST: "/general/contacts_module/notifications/",
+    BY_ID: (id: number) => `/general/contacts_module/notifications/${id}/`,
+    MARK_READ: (id: number) => `/general/contacts_module/notifications/${id}/mark-read/`,
+    MARK_ALL_READ: "/general/contacts_module/notifications/mark-all-read/",
+    UNREAD_COUNT: "/general/contacts_module/notifications/unread-count/",
   },
 
   SUBSCRIBE: "/push/subscribe/",

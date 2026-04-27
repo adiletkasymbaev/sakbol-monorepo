@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import transaction, models
+from django.utils import timezone
+from datetime import timedelta
 from drf_spectacular.utils import (
     extend_schema, extend_schema_view,
     OpenApiParameter, OpenApiExample, OpenApiResponse
@@ -13,16 +15,24 @@ from drf_spectacular.types import OpenApiTypes
 
 from accounts.models import Profile
 
-from .models import Contact, Location, Geofence, SosSignal, AlertSignal, AlertSignalAnswer
+from .models import Contact, Location, Geofence, SosSignal, AlertSignal, AlertSignalAnswer, Notification
 from .serializers import (
     ContactLocationItemSerializer, ContactSerializer, ContactCreateSerializer,
     LocationSerializer, LocationUpdateSerializer, GeofenceSerializer,
     SosSignalSerializer, SosSignalCreateSerializer,
     AlertSignalSerializer, AlertSignalCreateSerializer,
-    AlertSignalAnswerSerializer, AlertSignalAnswerCreateSerializer
+    AlertSignalAnswerSerializer, AlertSignalAnswerCreateSerializer,
+    NotificationSerializer,
 )
 from .permissions import IsParent
 from .geofence_service import check_child_outside_geofence
+from .notification_service import (
+    notify_contacts_alert_created,
+    notify_contacts_sos_created,
+    notify_alert_answered,
+    notify_sos_answered,
+    notify_alert_escalated_to_sos,
+)
 from push.service import push_to_users
 
 class GeofenceViewSet(viewsets.ModelViewSet):
@@ -30,10 +40,30 @@ class GeofenceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsParent]
 
     def get_queryset(self):
+        user = self.request.user
+        
+        # Get all users who have an accepted contact relationship with the current user
+        contact_user_ids = Contact.objects.filter(
+            is_accepted=True
+        ).filter(
+            models.Q(from_user=user) | models.Q(to_user=user)
+        ).values_list(
+            models.Case(
+                models.When(from_user=user, then='to_user'),
+                default='from_user'
+            ),
+            flat=True
+        )
+        
+        # Return zones where:
+        # 1. Current user is the parent (owner)
+        # 2. Parent of the zone is in the user's contacts
         return (
             Geofence.objects
-            .filter(parent=self.request.user)
-            .prefetch_related("children")          # ✅ M2M prefetch
+            .filter(
+                models.Q(parent=user) | models.Q(parent_id__in=contact_user_ids)
+            )
+            .prefetch_related("children")
             .order_by("-created_at")
         )
 
@@ -181,12 +211,24 @@ class ContactViewSet(viewsets.GenericViewSet):
         elif status_filter == "pending":
             qs = qs.filter(is_accepted=False)
 
-        page = self.paginate_queryset(qs.order_by("-created_at"))
+        qs = qs.order_by("-created_at")
+
+        # Deduplicate: if bidirectional contacts exist (A→B and B→A),
+        # keep only one per "other" user (the one with the highest id)
+        seen_user_ids = set()
+        deduplicated = []
+        for contact in qs:
+            other_id = contact.to_user_id if contact.from_user_id == user.id else contact.from_user_id
+            if other_id not in seen_user_ids:
+                seen_user_ids.add(other_id)
+                deduplicated.append(contact)
+
+        page = self.paginate_queryset(deduplicated)
         if page is not None:
             serializer = ContactSerializer(page, many=True, context={"request": request})
             return self.get_paginated_response(serializer.data)
 
-        serializer = ContactSerializer(qs, many=True, context={"request": request})
+        serializer = ContactSerializer(deduplicated, many=True, context={"request": request})
         return Response(serializer.data)
 
     # ====== retrieve ======
@@ -313,12 +355,42 @@ class LocationUpdateView(APIView):
         serializer = LocationUpdateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
-        # Сохраняем
         with transaction.atomic():
             location = serializer.save()
 
+        # Check for pending alert signals that have exceeded 3-minute timeout
+        self._check_alert_escalation(request.user)
+
         out = LocationSerializer(location, context={"request": request})
         return Response(out.data, status=status.HTTP_200_OK)
+
+    def _check_alert_escalation(self, user):
+        """
+        Check if any pending alert signals from this user have been unanswered for 3+ minutes.
+        If so, escalate them to SOS signals.
+        """
+        timeout = timezone.now() - timedelta(minutes=3)
+
+        pending_alerts = AlertSignal.objects.filter(
+            sender_user=user,
+            status="pending",
+            created_at__lte=timeout,
+        )
+
+        for alert in pending_alerts:
+            # Create an SOS signal
+            sos_signal = SosSignal.objects.create(
+                sender_user=user,
+                latitude=alert.latitude,
+                longitude=alert.longitude,
+            )
+
+            # Mark alert as no_answer
+            alert.status = "no_answer"
+            alert.save(update_fields=["status"])
+
+            # Notify all contacts about escalation
+            notify_alert_escalated_to_sos(alert, sos_signal)
 
 
 class ContactsLocationsView(APIView):
@@ -454,38 +526,7 @@ class SosSignalViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         signal = serializer.save()
 
-        # Отправляем уведомления всем контактам пользователя
-        contacts = Contact.objects.filter(
-            (models.Q(from_user=request.user) | models.Q(to_user=request.user)),
-            is_accepted=True
-        ).select_related("from_user", "to_user")
-
-        # Получаем профиль отправителя для формирования имени
-        try:
-            sender_profile = request.user.profile
-            sender_name = f"{sender_profile.first_name} {sender_profile.last_name}"
-        except Profile.DoesNotExist:
-            sender_name = request.user.email
-
-        title = "Экстренный SOS-сигнал"
-        body = f"Ваш контакт {sender_name} вызвал экстренный SOS-сигнал! Обратите внимание!"
-
-        # Собираем список контактов для уведомлений
-        notified_users = set()
-        for contact in contacts:
-            other_user = contact.to_user if contact.from_user == request.user else contact.from_user
-            if other_user.id != request.user.id and other_user.id not in notified_users:
-                notified_users.add(other_user.id)
-
-        # Отправляем уведомления
-        if notified_users:
-            from accounts.models import User
-            users_to_notify = User.objects.filter(id__in=notified_users)
-            push_to_users(users_to_notify, title, body, {
-                "sos_signal_id": signal.id,
-                "sender_id": request.user.id,
-                "type": "sos_signal"
-            })
+        notify_contacts_sos_created(signal)
 
         out = SosSignalSerializer(signal, context={"request": request})
         return Response(out.data, status=status.HTTP_201_CREATED)
@@ -532,6 +573,35 @@ class SosSignalViewSet(viewsets.ModelViewSet):
         signal = self.get_object_for_user(pk)
         signal.status = "INACTIVE"
         signal.save(update_fields=["status"])
+        serializer = SosSignalSerializer(signal, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["SOS Signals"],
+        summary="Ответить на SOS-сигнал",
+        description="Контакт может откликнуться на SOS-сигнал.",
+        request=None,
+        responses={
+            200: SosSignalSerializer,
+            400: OpenApiResponse(description="Сигнал уже обработан."),
+            404: OpenApiResponse(description="Не найдено."),
+        },
+    )
+    @action(detail=True, methods=["post"], url_path="answer")
+    def answer(self, request, pk=None):
+        signal = get_object_or_404(SosSignal, pk=pk)
+
+        if signal.status == "answered":
+            return Response(
+                {"detail": "Сигнал уже обработан."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        signal.status = "answered"
+        signal.save(update_fields=["status"])
+
+        notify_sos_answered(signal, request.user)
+
         serializer = SosSignalSerializer(signal, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -585,42 +655,11 @@ class AlertSignalViewSet(viewsets.ModelViewSet):
         serializer = AlertSignalCreateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         signal = serializer.save()
-        
-        # Отправляем уведомления всем контактам пользователя
-        # Контакты, где пользователь является from_user или to_user и контакт принят
-        contacts = Contact.objects.filter(
-            (models.Q(from_user=request.user) | models.Q(to_user=request.user)),
-            is_accepted=True
-        ).select_related("from_user", "to_user")
-        
-        # Получаем профиль отправителя для формирования имени
-        try:
-            sender_profile = request.user.profile
-            sender_name = f"{sender_profile.first_name} {sender_profile.last_name}"
-        except Profile.DoesNotExist:
-            sender_name = request.user.email
-        
-        title = "SOS-сигнал"
-        body = f"Ваш контакт {sender_name} вызвал SOS-сигнал. Обратите внимание!"
-        
-        # Собираем список контактов для уведомлений
-        notified_users = set()
-        for contact in contacts:
-            # Определяем "другого" участника контакта (не текущего пользователя)
-            other_user = contact.to_user if contact.from_user == request.user else contact.from_user
-            if other_user.id != request.user.id and other_user.id not in notified_users:
-                notified_users.add(other_user.id)
-        
-        # Отправляем уведомления
-        if notified_users:
-            from accounts.models import User
-            users_to_notify = User.objects.filter(id__in=notified_users)
-            push_to_users(users_to_notify, title, body, {
-                "alert_signal_id": signal.id,
-                "sender_id": request.user.id,
-                "type": "alert_signal"
-            })
-        
+        signal.status = "pending"
+        signal.save(update_fields=["status"])
+
+        notify_contacts_alert_created(signal)
+
         out = AlertSignalSerializer(signal, context={"request": request})
         return Response(out.data, status=status.HTTP_201_CREATED)
 
@@ -638,9 +677,24 @@ class AlertSignalViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="answer")
     def answer(self, request, pk=None):
         signal = get_object_or_404(AlertSignal, pk=pk)
+
+        if signal.status == "answered":
+            return Response(
+                {"detail": "Сигнал уже обработан."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = AlertSignalAnswerCreateSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         answer = serializer.save()
+
+        # Update signal status
+        signal.status = "answered"
+        signal.save(update_fields=["status"])
+
+        # Notify sender and all contacts
+        notify_alert_answered(signal, request.user)
+
         out = AlertSignalAnswerSerializer(answer, context={"request": request})
         return Response(out.data, status=status.HTTP_201_CREATED)
 
@@ -659,3 +713,48 @@ class AlertSignalViewSet(viewsets.ModelViewSet):
         answers = AlertSignalAnswer.objects.filter(alert_signal=signal).order_by("-created_at")
         serializer = AlertSignalAnswerSerializer(answers, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Notifications"],
+        summary="Список уведомлений пользователя",
+        description="Возвращает все in-app уведомления текущего пользователя.",
+        responses={200: NotificationSerializer},
+    ),
+)
+class NotificationViewSet(viewsets.GenericViewSet):
+    """
+    CRUD для in-app уведомлений.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(recipient=self.request.user).order_by("-created_at")
+
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = NotificationSerializer(page, many=True, context={"request": request})
+            return self.get_paginated_response(serializer.data)
+        serializer = NotificationSerializer(qs, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="mark-read")
+    def mark_read(self, request, pk=None):
+        notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+        return Response({"detail": "Уведомление отмечено как прочитанное."})
+
+    @action(detail=False, methods=["post"], url_path="mark-all-read")
+    def mark_all_read(self, request, *args, **kwargs):
+        self.get_queryset().update(is_read=True)
+        return Response({"detail": "Все уведомления отмечены как прочитанные."})
+
+    @action(detail=False, methods=["get"], url_path="unread-count")
+    def unread_count(self, request, *args, **kwargs):
+        count = self.get_queryset().filter(is_read=False).count()
+        return Response({"count": count})

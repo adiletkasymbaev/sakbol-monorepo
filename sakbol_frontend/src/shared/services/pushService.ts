@@ -123,29 +123,27 @@ export async function registerServiceWorkerPush(): Promise<boolean> {
       return false;
     }
 
-    // Используем захардкоженный VAPID публичный ключ (не нужно обращаться к бэкенду)
     const publicKey = VAPID_PUBLIC_KEY;
     console.log("[SW Push] Using VAPID public key:", publicKey.slice(0, 30) + "...");
 
-    // Регистрируем Service Worker
     const registration = await navigator.serviceWorker.register("/sw.js", {
       scope: "/",
     });
 
     // Проверяем существующую подписку
-    const existingSubscription = await registration.pushManager.getSubscription();
-    if (existingSubscription) {
-      console.log("[SW Push] Existing push subscription found, skipping registration");
-      return true;
+    let subscription = await registration.pushManager.getSubscription();
+
+    // If no subscription exists, create one
+    if (!subscription) {
+      console.log("[SW Push] Creating new push subscription...");
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    } else {
+      console.log("[SW Push] Existing push subscription found, re-syncing with backend");
     }
 
-    // Подписываемся на push
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    });
-
-    // Проверяем наличие ключей
     const p256dhKey = subscription.getKey("p256dh");
     const authKey = subscription.getKey("auth");
 
@@ -162,17 +160,17 @@ export async function registerServiceWorkerPush(): Promise<boolean> {
       auth: authBase64.slice(0, 30) + "...",
     });
 
-    // Отправляем подписку на бэкенд
+    // Always send subscription to backend (sync)
     try {
       await api.post("/push/subscribe/", {
         endpoint: subscription.endpoint,
         p256dh: p256dhBase64,
         auth: authBase64,
       });
-      console.log("[SW Push] Service Worker push registered successfully on backend");
+      console.log("[SW Push] Subscription synced with backend successfully");
     } catch (backendError) {
-      console.warn("[SW Push] Backend subscription failed, but local subscription succeeded:", backendError);
-      // Локальная подписка успешна, даже если бэкенд недоступен
+      console.warn("[SW Push] Backend sync failed:", backendError);
+      return false;
     }
 
     return true;

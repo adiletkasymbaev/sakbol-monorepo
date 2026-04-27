@@ -86,10 +86,10 @@ export default function TourMembersList({ groupId }: TourMembersListProps) {
   return (
     <div className="flex flex-col gap-2">
       {members.map((member) => {
-        const { user: userData } = member as TourGroupMember;
+        const userData = member.user;
         const firstName = userData?.first_name || "?";
         const lastName = userData?.last_name || "";
-        const email = userData?.user?.email || "";
+        const email = userData?.email || "";
         const avatar = userData?.avatar || null;
 
         return (

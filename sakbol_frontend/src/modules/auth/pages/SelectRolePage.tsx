@@ -6,8 +6,12 @@ import PinElement from "../../../shared/components/PinElement";
 import UrlNames from "../../../shared/enums/UrlNames";
 import LoginFallback from "../components/LoginFallback";
 import SelectRole from "../components/SelectRole";
+import { useTranslation } from "react-i18next";
+import LanguageSelect from "../../../shared/components/LanguageSelect";
 
 function SelectRolePage() {
+    const { t } = useTranslation();
+
     const content = (
         <div className="page-wrapper">
             <PinElement to="top">
@@ -20,7 +24,7 @@ function SelectRolePage() {
 
             <div className="relative">
                 <Heading>
-                    Жакындарыңызды коргоо үчүн катталыңыз
+                    {t('auth.selectRole.title')}
                 </Heading>
                 <Margin direction="b" value={6}/>
 
@@ -35,12 +39,13 @@ function SelectRolePage() {
                         className="w-full"
                         to={"/" + UrlNames.REGISTER}
                     >
-                        Улантуу
+                        {t('auth.selectRole.button')}
                     </Button>
                 </div>
             </div>
 
             <LoginFallback/>
+            <LanguageSelect />
         </div>
     );
 

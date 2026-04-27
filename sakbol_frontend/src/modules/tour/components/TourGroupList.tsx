@@ -2,6 +2,7 @@ import { Card, CardBody, CardHeader, Button, Chip, Skeleton } from "@heroui/reac
 import { Link } from "react-router-dom";
 import type { TourGroup } from "../../../shared/types/tour";
 import Margin from "../../../shared/components/Margin";
+import { useTranslation } from "react-i18next";
 
 interface TourGroupListProps {
   groups: TourGroup[];
@@ -10,6 +11,7 @@ interface TourGroupListProps {
 }
 
 export default function TourGroupList({ groups, isLoading, onDismiss }: TourGroupListProps) {
+  const { t } = useTranslation();
   // Защита от undefined/null
   const groupsArray = Array.isArray(groups) ? groups : [];
 
@@ -36,8 +38,8 @@ export default function TourGroupList({ groups, isLoading, onDismiss }: TourGrou
   if (groupsArray.length === 0) {
     return (
       <div className="text-center py-8 text-default-500">
-        <p>У вас пока нет групп</p>
-        <p className="text-sm">Создайте первую группу, чтобы начать</p>
+        <p>{t('tour.groupList.empty')}</p>
+        <p className="text-sm">{t('tour.groupList.emptyDescription')}</p>
       </div>
     );
   }
@@ -50,7 +52,7 @@ export default function TourGroupList({ groups, isLoading, onDismiss }: TourGrou
             <div className="flex flex-col">
               <h3 className="text-lg font-semibold">{group.name}</h3>
               <p className="text-sm text-default-500">
-                Агент: {group.agent?.first_name || group.agent?.user?.email || "Неизвестный"} {group.agent?.last_name || ""}
+                {t('tour.groupList.agent')}: {group.agent?.first_name || group.agent?.user?.email || t('tour.groupList.unknown')} {group.agent?.last_name || ""}
               </p>
             </div>
             <div className="flex gap-2">
@@ -59,20 +61,20 @@ export default function TourGroupList({ groups, isLoading, onDismiss }: TourGrou
                 variant="flat"
                 color={group.is_active ? "success" : "default"}
               >
-                {group.is_active ? "Активна" : "Не активна"}
+                {group.is_active ? t('tour.groupList.active') : t('tour.groupList.inactive')}
               </Chip>
               {group.has_active_session && (
                 <Chip size="sm" variant="flat" color="warning">
-                  Идет тур
+                  {t('tour.groupList.tourInProgress')}
                 </Chip>
               )}
             </div>
           </CardHeader>
           <CardBody className="pt-0">
             <div className="flex gap-4 text-sm text-default-600">
-              <span>👥 {group.active_members_count} участников</span>
-              <span>📍 {group.zones_count} зон</span>
-              <span>⏳ {group.pending_members_count} заявок</span>
+              <span>👥 {group.active_members_count} {t('tour.groupList.members')}</span>
+              <span>📍 {group.zones_count} {t('tour.groupDetail.zones')}</span>
+              <span>⏳ {group.pending_members_count} {t('tour.groupList.requests')}</span>
             </div>
 
             <Margin direction="t" value={3} />
@@ -84,7 +86,7 @@ export default function TourGroupList({ groups, isLoading, onDismiss }: TourGrou
                 as={Link}
                 to={`/tour/groups/${group.id}`}
               >
-                Подробнее
+                {t('tour.groupList.details')}
               </Button>
               {group.is_active && onDismiss && (
                 <div
@@ -97,22 +99,10 @@ export default function TourGroupList({ groups, isLoading, onDismiss }: TourGrou
                     color="danger"
                     onPress={() => onDismiss(group.id)}
                   >
-                    Распустить
+                    {t('tour.groupList.dismiss')}
                   </Button>
                 </div>
               )}
-              <div
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <Button
-                  size="sm"
-                  variant="bordered"
-                  onPress={() => navigator.clipboard.writeText(group.invite_link)}
-                >
-                  Копировать ссылку
-                </Button>
-              </div>
             </div>
           </CardBody>
         </Card>

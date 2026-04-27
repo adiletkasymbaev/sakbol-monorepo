@@ -170,13 +170,28 @@ class TourZone(models.Model):
         return f"{self.name} ({self.group.name})"
 
     def get_area_estimate(self):
-        """Приблизительная площадь зоны (в м²)"""
+        """Приблизительная площадь зоны (в м²) с использованием проекции"""
         try:
+            from pyproj import Geod
+            geod = Geod(ellps="WGS84")
+            points = [(p['lng'], p['lat']) for p in self.polygon]
+            if len(points) < 3:
+                return 0
+            # Добавляем первую точку в конец для замыкания полигона
+            points.append(points[0])
+            lons = [p[0] for p in points]
+            lats = [p[1] for p in points]
+            _, _, area = geod.polygon_area_perimeter(lons, lats)
+            return abs(area)
+        except ImportError:
+            # Fallback: простая оценка через среднюю широту
             from shapely.geometry import Polygon
             points = [(p['lng'], p['lat']) for p in self.polygon]
             poly = Polygon(points)
-            # Простая оценка площади (для небольших зон)
-            return poly.area * 111000 * 111000  # примерный перевод в м²
+            mid_lat = sum(p['lat'] for p in self.polygon) / len(self.polygon)
+            meters_per_deg_lat = 111320
+            meters_per_deg_lng = 111320 * abs(__import__('math').cos(__import__('math').radians(mid_lat)))
+            return abs(poly.area) * meters_per_deg_lat * meters_per_deg_lng
         except Exception:
             return 0
 

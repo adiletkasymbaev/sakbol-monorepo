@@ -4,8 +4,10 @@ import { useContacts } from "../../../store/useContacts";
 import ContactItem from "./ContactItem";
 import Margin from "../../../shared/components/Margin";
 import { mutableAction } from "../../../shared/utils/mutableAction";
+import { useTranslation } from "react-i18next";
 
 function СontactsPendingList() {
+  const { t } = useTranslation();
   const {
     contactsPendingList,
     isPendingLoading,
@@ -21,25 +23,25 @@ function СontactsPendingList() {
     mutableAction({
       id,
       action: destroyContact,
-      okText: "Вы удалили заявку",
+      okText: t('contacts.pending.requestDeleted'),
     });
 
   const onAccept = (id: number) =>
     mutableAction({
       id,
       action: acceptContact,
-      okText: "Заявка принята",
+      okText: t('contacts.pending.requestAccepted'),
     });
 
   return (
     <div className="flex flex-col gap-2">
-        <h3 className="font-bold">Исходящие заявки</h3>
+        <h3 className="font-bold">{t('contacts.pending.outgoing')}</h3>
 
         <RenderWithSpinner
             wrapperHeight={50}
             isLoading={isPendingLoading}
             isEmpty={contactsPendingList.length === 0}
-            emptyText={error ? "Ошибка" : "Нет исходящих заявок"}
+            emptyText={error ? t('common.error') : t('contacts.pending.emptyOutgoing')}
         >
             {contactsPendingList.map((item: Contact) => (
                 <ContactItem 
@@ -55,12 +57,12 @@ function СontactsPendingList() {
 
         <Margin direction="b" value={1} />
 
-        <h3 className="font-bold">Входящие заявки</h3>
+        <h3 className="font-bold">{t('contacts.pending.incoming')}</h3>
         <RenderWithSpinner
             wrapperHeight={50}
             isLoading={isIncomingLoading}
             isEmpty={contactsIncomingList.length === 0}
-            emptyText={error ? "Ошибка" : "Нет входящих заявок"}
+            emptyText={error ? t('common.error') : t('contacts.pending.emptyIncoming')}
         >
             {contactsIncomingList.map((item: Contact) => (
                 <ContactItem 

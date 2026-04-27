@@ -4,6 +4,7 @@ import SelectRolePage from "./modules/auth/pages/SelectRolePage"
 import RegisterPage from "./modules/auth/pages/RegisterPage"
 import RequireGuest from "./shared/guards/RequireGuest"
 import RequireAuth from "./shared/guards/RequireAuth"
+import RequireRole from "./shared/guards/RequireRole"
 import ProfilePage from "./modules/profile/pages/ProfilePage"
 import LoginPage from "./modules/auth/pages/LoginPage"
 import SettingsPage from "./modules/settings/pages/SettingsPage"
@@ -15,6 +16,10 @@ import TourGroupDetailPage from "./modules/tour/pages/TourGroupDetailPage"
 import TourJoinPage from "./modules/tour/pages/TourJoinPage"
 import TourLocationUpdater from "./modules/tour/components/TourLocationUpdater"
 import TourTimer from "./modules/tour/components/TourTimer"
+import NotificationsPage from "./modules/notifications/pages/NotificationsPage"
+import { ProfileRoles } from "./shared/enums/ProfileRoles"
+
+const TOUR_ROLES = [ProfileRoles.TOUR_AGENCY, ProfileRoles.TOURIST, ProfileRoles.USER];
 
 function App() {
   return (
@@ -34,11 +39,24 @@ function App() {
           <Route path={UrlNames.SOS_CONTACTS} element={<ContactsPage/>}/>
           <Route path={UrlNames.SOS_SETTINGS} element={<SettingsPage/>}/>
           <Route path={UrlNames.SOS_PROFILE} element={<ProfilePage/>}/>
+          <Route path={UrlNames.SOS_NOTIFICATIONS} element={<NotificationsPage/>}/>
 
-          {/* Tour groups routes */}
-          <Route path={UrlNames.TOUR_GROUPS} element={<TourGroupsPage/>}/>
-          <Route path="/tour/groups/:id" element={<TourGroupDetailPage/>}/>
-          <Route path="/tour/join/:inviteCode" element={<TourJoinPage/>}/>
+          {/* Tour groups routes — доступно только туристам и агентам */}
+          <Route path={UrlNames.TOUR_GROUPS} element={
+            <RequireRole allowedRoles={TOUR_ROLES}>
+              <TourGroupsPage/>
+            </RequireRole>
+          }/>
+          <Route path="/tour/groups/:id" element={
+            <RequireRole allowedRoles={TOUR_ROLES}>
+              <TourGroupDetailPage/>
+            </RequireRole>
+          }/>
+          <Route path="/tour/join/:inviteCode" element={
+            <RequireRole allowedRoles={TOUR_ROLES}>
+              <TourJoinPage/>
+            </RequireRole>
+          }/>
         </Route>
       </Routes>
     </>

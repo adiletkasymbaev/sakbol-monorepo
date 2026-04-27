@@ -5,8 +5,16 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status, permissions
 from django.contrib.auth import get_user_model
 
-from .models import Profile
-from .serializers import AvatarUpdateSerializer, ProfileDetailSerializer, RegistrationSerializer, EmailTokenObtainPairSerializer
+from .models import Profile, ActionOTP
+from .serializers import (
+    AvatarUpdateSerializer, ProfileDetailSerializer, RegistrationSerializer, 
+    EmailTokenObtainPairSerializer, VerifyEmailSerializer, ProfileUpdateSerializer,
+    RequestChangePasswordSerializer, VerifyChangePasswordSerializer,
+    RequestChangeEmailSerializer, VerifyChangeEmailSerializer
+)
+from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
+from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_spectacular.utils import extend_schema
@@ -19,10 +27,8 @@ User = get_user_model()
         201: {
             "type": "object",
             "properties": {
-                "refresh": {"type": "string", "description": "JWT refresh token"},
-                "access": {"type": "string", "description": "JWT access token"},
-                "user_id": {"type": "integer", "description": "ID созданного пользователя"},
-                "email": {"type": "string", "format": "email", "description": "Email пользователя"}
+                "email": {"type": "string", "format": "email", "description": "Email пользователя"},
+                "detail": {"type": "string", "description": "Сообщение об успешной отправке"}
             }
         }
     },
@@ -52,15 +58,35 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        refresh = RefreshToken.for_user(user)
         data = {
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "user_id": user.pk,
             "email": user.email,
-            "role": user.role
+            "detail": "Код подтверждения отправлен на почту"
         }
         return Response(data, status=status.HTTP_201_CREATED)
+
+@extend_schema(
+    request=VerifyEmailSerializer,
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "refresh": {"type": "string", "description": "JWT refresh token"},
+                "access": {"type": "string", "description": "JWT access token"},
+                "user_id": {"type": "integer", "description": "ID пользователя"},
+                "email": {"type": "string", "format": "email"},
+                "role": {"type": "string", "description": "Роль"}
+            }
+        }
+    },
+    description="Подтверждение почты через 6-значный код. При успехе возвращает JWT токены."
+)
+class VerifyEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = VerifyEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 @extend_schema(
     request=EmailTokenObtainPairSerializer,
@@ -177,3 +203,117 @@ class ProfileDetailView(APIView):
         profile, _ = Profile.objects.get_or_create(user=user)
         serializer = ProfileDetailSerializer(profile, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, user_id=None, *args, **kwargs):
+        if user_id not in (None, 'me'):
+            return Response({"detail": "Изменять можно только свой профиль"}, status=status.HTTP_403_FORBIDDEN)
+
+        user = request.user
+        profile, _ = Profile.objects.get_or_create(user=user)
+        serializer = ProfileUpdateSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        out = ProfileDetailSerializer(profile, context={'request': request})
+        return Response(out.data, status=status.HTTP_200_OK)
+
+class ChangePasswordRequestView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(request=RequestChangePasswordSerializer)
+    def post(self, request):
+        serializer = RequestChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        new_password = serializer.validated_data['new_password']
+        code = get_random_string(length=6, allowed_chars='0123456789')
+        
+        ActionOTP.objects.filter(user=request.user, action='password_change').delete()
+        ActionOTP.objects.create(
+            user=request.user, 
+            action='password_change', 
+            code=code, 
+            data={"new_password": new_password}
+        )
+
+        send_mail(
+            'Смена пароля',
+            f'Код для смены пароля: {code}',
+            settings.DEFAULT_FROM_EMAIL,
+            [request.user.email],
+            fail_silently=False,
+        )
+
+        return Response({"detail": "Код отправлен на вашу текущую почту"}, status=status.HTTP_200_OK)
+
+class ChangePasswordVerifyView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(request=VerifyChangePasswordSerializer)
+    def post(self, request):
+        serializer = VerifyChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        code = serializer.validated_data['code']
+        
+        otp = ActionOTP.objects.filter(user=request.user, action='password_change').first()
+        if not otp or otp.code != code:
+            return Response({"code": ["Неверный код"]}, status=status.HTTP_400_BAD_REQUEST)
+        
+        new_password = otp.data.get("new_password")
+        request.user.set_password(new_password)
+        request.user.save()
+        otp.delete()
+
+        return Response({"detail": "Пароль успешно изменен"}, status=status.HTTP_200_OK)
+
+class ChangeEmailRequestView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(request=RequestChangeEmailSerializer)
+    def post(self, request):
+        serializer = RequestChangeEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        new_email = serializer.validated_data['new_email']
+        code = get_random_string(length=6, allowed_chars='0123456789')
+        
+        ActionOTP.objects.filter(user=request.user, action='email_change').delete()
+        ActionOTP.objects.create(
+            user=request.user, 
+            action='email_change', 
+            code=code, 
+            data={"new_email": new_email}
+        )
+
+        send_mail(
+            'Смена почты',
+            f'Код для подтверждения новой почты: {code}',
+            settings.DEFAULT_FROM_EMAIL,
+            [new_email],
+            fail_silently=False,
+        )
+
+        return Response({"detail": "Код отправлен на вашу новую почту"}, status=status.HTTP_200_OK)
+
+class ChangeEmailVerifyView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(request=VerifyChangeEmailSerializer)
+    def post(self, request):
+        serializer = VerifyChangeEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        code = serializer.validated_data['code']
+        
+        otp = ActionOTP.objects.filter(user=request.user, action='email_change').first()
+        if not otp or otp.code != code:
+            return Response({"code": ["Неверный код"]}, status=status.HTTP_400_BAD_REQUEST)
+        
+        new_email = otp.data.get("new_email")
+        if User.objects.filter(email=new_email).exists():
+            return Response({"code": ["Эта почта уже занята кем-то другим"]}, status=status.HTTP_400_BAD_REQUEST)
+            
+        request.user.email = new_email
+        request.user.save(update_fields=['email'])
+        otp.delete()
+
+        return Response({"detail": "Email успешно изменен", "new_email": new_email}, status=status.HTTP_200_OK)

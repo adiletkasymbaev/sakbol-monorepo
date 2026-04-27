@@ -55,3 +55,9 @@ export const alertsService = {
     return api.get<AlertSignalAnswer[]>(API_ENDPOINTS.ALERTS.ANSWERS(id));
   },
 };
+
+export const sosAnswerService = {
+  answer: (id: number) => {
+    return api.post(API_ENDPOINTS.SOS.ANSWER(id));
+  },
+};

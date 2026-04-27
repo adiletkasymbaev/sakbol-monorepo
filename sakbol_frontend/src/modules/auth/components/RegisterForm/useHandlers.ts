@@ -9,9 +9,8 @@ import { useNavigate } from "react-router-dom";
 import UrlNames from "../../../../shared/enums/UrlNames";
 import { useState } from "react";
 
-export function useHandlers() {
+export function useHandlers({ onSuccess }: { onSuccess: (email: string) => void }) {
   const navigate = useNavigate();
-  const setLoginData = useAuth((state) => state.setLoginData);
   const [isLoading, setLoading] = useState(false);
 
   const onFormSubmit = async (data: RegisterFormType) => {
@@ -25,21 +24,13 @@ export function useHandlers() {
 
     try {
       const response = await authService.register(payload);
-      const { access, refresh, user_id, role } = response.data;
-
-      setLoginData(access, refresh, user_id, role);
-
-      console.log("saved userId:", useAuth.getState().userId);
-
       addToast({
         title: ToastTypes.OK,
-        description: "Вы зарегистрировались",
+        description: response.data.detail || "Код отправлен",
         color: "success",
       });
 
-      setTimeout(() => {
-        navigate(`/${UrlNames.LOGIN}`);
-      }, 1000);
+      onSuccess(response.data.email);
     } catch (error) {
       const messages = parseApiErrorToArray(error);
       messages.forEach((message) =>

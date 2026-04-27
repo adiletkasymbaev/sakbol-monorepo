@@ -1,9 +1,11 @@
 from rest_framework import viewsets, status, permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from drf_spectacular.types import OpenApiTypes
 
@@ -26,6 +28,8 @@ from .serializers import (
 )
 from .permissions import IsTourAgent, IsTourMember
 from .geofence_service import check_member_location
+
+User = get_user_model()
 
 
 @extend_schema_view(
@@ -57,10 +61,16 @@ from .geofence_service import check_member_location
 class TourGroupViewSet(viewsets.ModelViewSet):
     """
     CRUD для групп туристов.
-    Только тур-агенты могут создавать группы.
+    Только тур-агенты могут создавать/изменять/удалять группы.
+    Туристы могут читать группы, в которых состоят.
     """
     serializer_class = TourGroupSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTourAgent]
+
+    def get_permissions(self):
+        # Только агенты могут создавать/изменять/удалять
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'dismiss']:
+            return [permissions.IsAuthenticated(), IsTourAgent()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -83,7 +93,7 @@ class TourGroupViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Проверка: у агента может быть только одна активная группа
         if TourGroup.objects.filter(agent=self.request.user, is_active=True).exists():
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 'У вас уже есть активная группа. Распустите её перед созданием новой.'
             )
         serializer.save(agent=self.request.user)
@@ -113,31 +123,68 @@ class TourGroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def members_locations(self, request, pk=None):
-        """Получить местоположения всех участников группы"""
+        """Получить местоположения всех участников группы.
+        Доступно только агенту группы или активным участникам."""
         group = self.get_object()
-        
-        # Получаем всех активных участников
+
+        user = request.user
+        is_agent = group.agent == user
+        is_member = TourGroupMember.objects.filter(
+            group=group, user=user, status=MemberStatus.ACTIVE
+        ).exists()
+
+        if not is_agent and not is_member:
+            return Response(
+                {'detail': 'Только агент или участник группы может просматривать местоположения'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Агент + участники: селекция через profile для first_name/last_name/is_online
         members = TourGroupMember.objects.filter(
             group=group,
             status=MemberStatus.ACTIVE
-        ).select_related('user', 'user__location')
-        
+        ).select_related('user', 'user__location', 'user__profile')
+
         locations = []
+
+        # --- Добавляем местоположение агента ---
+        agent_user = group.agent
+        agent_location = getattr(agent_user, 'location', None)
+        if agent_location and agent_location.latitude and agent_location.longitude:
+            agent_profile = getattr(agent_user, 'profile', None)
+            locations.append({
+                'member_id': 0,
+                'user_id': agent_user.id,
+                'first_name': agent_profile.first_name if agent_profile else '',
+                'last_name': agent_profile.last_name if agent_profile else '',
+                'email': agent_user.email,
+                'latitude': float(agent_location.latitude),
+                'longitude': float(agent_location.longitude),
+                'is_online': agent_profile.is_online if agent_profile else False,
+                'last_seen': agent_profile.last_seen.isoformat() if agent_profile and agent_profile.last_seen else None,
+                'is_agent': True,
+                'phone_number': agent_profile.phone_number if agent_profile else None,
+            })
+
+        # --- Участники ---
         for member in members:
             location = getattr(member.user, 'location', None)
             if location and location.latitude and location.longitude:
+                member_profile = getattr(member.user, 'profile', None)
                 locations.append({
                     'member_id': member.id,
                     'user_id': member.user.id,
-                    'first_name': member.user.first_name,
-                    'last_name': member.user.last_name,
+                    'first_name': member_profile.first_name if member_profile else '',
+                    'last_name': member_profile.last_name if member_profile else '',
                     'email': member.user.email,
                     'latitude': float(location.latitude),
                     'longitude': float(location.longitude),
-                    'is_online': member.user.is_online,
-                    'last_seen': member.user.last_seen.isoformat() if member.user.last_seen else None,
+                    'is_online': member_profile.is_online if member_profile else False,
+                    'last_seen': member_profile.last_seen.isoformat() if member_profile and member_profile.last_seen else None,
+                    'is_agent': False,
+                    'phone_number': None,
                 })
-        
+
         return Response(locations)
 
     @action(detail=True, methods=['post'])
@@ -208,7 +255,14 @@ class TourGroupMemberViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        group = get_object_or_404(TourGroup, id=serializer.validated_data['user_id'])
+        group_id = request.data.get('group')
+        if not group_id:
+            return Response(
+                {'detail': 'Требуется group_id'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        group = get_object_or_404(TourGroup, id=group_id)
         if group.agent != request.user:
             return Response(
                 {'detail': 'Только агент может добавлять участников'},
@@ -216,7 +270,7 @@ class TourGroupMemberViewSet(viewsets.ModelViewSet):
             )
 
         user = get_object_or_404(
-            request.user.__class__,
+            User,
             id=serializer.validated_data['user_id']
         )
 
@@ -331,10 +385,15 @@ class TourGroupMemberViewSet(viewsets.ModelViewSet):
 class TourZoneViewSet(viewsets.ModelViewSet):
     """
     CRUD для зон тура.
-    Только тур-агенты могут создавать и управлять зонами.
+    Только тур-агенты могут создавать/изменять/удалять зоны.
+    Участники группы могут читать зоны своей группы.
     """
     serializer_class = TourZoneSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTourAgent]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsTourAgent()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -347,24 +406,19 @@ class TourZoneViewSet(viewsets.ModelViewSet):
                 status__in=['pending', 'active']
             ).values_list('group_id', flat=True)
             queryset = TourZone.objects.filter(group_id__in=member_group_ids)
-        
+
         # Фильтрация по group_id если указан
         group_id = self.request.query_params.get('group')
         if group_id:
             queryset = queryset.filter(group_id=group_id)
-        
-        return queryset
 
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return TourZoneListSerializer
-        return TourZoneSerializer
+        return queryset
 
     def perform_create(self, serializer):
         group_id = self.request.data.get('group')
         group = get_object_or_404(TourGroup, id=group_id)
         if group.agent != self.request.user:
-            raise permissions.PermissionDenied(
+            raise PermissionDenied(
                 'Только агент группы может создавать зоны'
             )
         serializer.save(group=group)
@@ -387,9 +441,15 @@ class TourZoneViewSet(viewsets.ModelViewSet):
 class TourSessionViewSet(viewsets.ModelViewSet):
     """
     CRUD для сессий тура.
+    Участники группы могут читать сессии; только агент может создавать/управлять.
     """
     serializer_class = TourSessionSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTourAgent]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy',
+                           'start', 'complete', 'cancel']:
+            return [permissions.IsAuthenticated(), IsTourAgent()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -402,12 +462,12 @@ class TourSessionViewSet(viewsets.ModelViewSet):
                 status__in=['pending', 'active']
             ).values_list('group_id', flat=True)
             queryset = TourSession.objects.filter(group_id__in=member_group_ids)
-        
+
         # Фильтрация по group_id если указан
         group_id = self.request.query_params.get('group')
         if group_id:
             queryset = queryset.filter(group_id=group_id)
-        
+
         return queryset
 
     def get_serializer_class(self):
@@ -452,6 +512,12 @@ class TourSessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        if session.status != TourStatus.DRAFT:
+            return Response(
+                {'detail': 'Тур можно начать только из черновика'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = StartTourSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -471,6 +537,11 @@ class TourSessionViewSet(viewsets.ModelViewSet):
                 {'detail': 'Только агент может завершить тур'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        if session.status != TourStatus.ACTIVE:
+            return Response(
+                {'detail': 'Завершить можно только активный тур'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         session.complete_tour()
         return Response(TourSessionDetailSerializer(session).data)
 
@@ -482,6 +553,11 @@ class TourSessionViewSet(viewsets.ModelViewSet):
             return Response(
                 {'detail': 'Только агент может отменить тур'},
                 status=status.HTTP_403_FORBIDDEN
+            )
+        if session.status not in [TourStatus.DRAFT, TourStatus.ACTIVE]:
+            return Response(
+                {'detail': 'Отменить можно только черновик или активный тур'},
+                status=status.HTTP_400_BAD_REQUEST
             )
         session.cancel_tour()
         return Response(TourSessionDetailSerializer(session).data)

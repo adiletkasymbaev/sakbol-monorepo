@@ -115,7 +115,11 @@ const useTour = create<TourState>((set) => ({
     set({ isGroupDetailLoading: true, error: null });
     try {
       const response = await tourService.getGroupDetail(id);
-      set({ selectedGroup: response.data, isGroupDetailLoading: false });
+      set({
+        selectedGroup: response.data,
+        zones: response.data.zones || [],
+        isGroupDetailLoading: false,
+      });
     } catch (error) {
       set({ error, isGroupDetailLoading: false });
     }

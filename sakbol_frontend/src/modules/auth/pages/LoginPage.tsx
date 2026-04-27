@@ -4,8 +4,12 @@ import Margin from "../../../shared/components/Margin";
 import PinElement from "../../../shared/components/PinElement";
 import LoginForm from "../components/LoginForm/LoginForm";
 import RegisterFallback from "../components/RegisterFallback";
+import { useTranslation } from "react-i18next";
+import LanguageSelect from "../../../shared/components/LanguageSelect";
 
 function LoginPage() {
+    const { t } = useTranslation();
+
     const content = (
         <div className="page-wrapper">
             <PinElement to="top">
@@ -25,13 +29,13 @@ function LoginPage() {
 
             <div className="relative">
                 <Heading>
-                    Самое надежное <br /> SOS-приложение в Кыргызстане
+                    {t('auth.login.tagline')}
                 </Heading>
                 <Margin direction="b" value={20}/>
 
                 <Headline
-                    mainText="Войдите в аккаунт"
-                    secondaryText="Вход"
+                    mainText={t('auth.login.title')}
+                    secondaryText={t('auth.login.button')}
                 />
                 <Margin direction="b" value={4}/>
 
@@ -39,6 +43,7 @@ function LoginPage() {
             </div>
             
             <RegisterFallback/>
+            <LanguageSelect />
         </div>
     );
 

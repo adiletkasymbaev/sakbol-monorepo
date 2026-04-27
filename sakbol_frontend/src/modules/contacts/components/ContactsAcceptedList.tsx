@@ -4,6 +4,7 @@ import { mutableAction } from "../../../shared/utils/mutableAction";
 import { useContacts } from "../../../store/useContacts";
 import useAuth from "../../../store/useAuth";
 import ContactItem from "./ContactItem";
+import { useTranslation } from "react-i18next";
 
 // Fallback: decode userId from JWT if store value is null
 function getUserIdFromToken(token: string): number | null {
@@ -18,6 +19,7 @@ function getUserIdFromToken(token: string): number | null {
 }
 
 function ContactsAcceptedList() {
+  const { t } = useTranslation();
   const {
     contactsAcceptedList,
     isAcceptedLoading,
@@ -36,7 +38,7 @@ function ContactsAcceptedList() {
     mutableAction({
       id,
       action: destroyContact,
-      okText: "Вы удалили заявку",
+      okText: t('contacts.accepted.requestDeleted'),
     });
 
   return (
@@ -44,7 +46,7 @@ function ContactsAcceptedList() {
       wrapperHeight={50}
       isLoading={isAcceptedLoading}
       isEmpty={contactsAcceptedList.length === 0}
-      emptyText={error ? "Ошибка" : "Нет контактов"}
+      emptyText={error ? t('common.error') : t('contacts.accepted.empty')}
     >
       {contactsAcceptedList.map((item: Contact) => {
         const otherProfile =

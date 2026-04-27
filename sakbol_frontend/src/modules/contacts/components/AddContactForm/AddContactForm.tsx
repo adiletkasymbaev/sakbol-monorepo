@@ -4,8 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { type AddContactFormType, addContactSchema } from "../../utils/roles";
 import { useHandlers } from "./useHandlers";
+import { useTranslation } from "react-i18next";
 
 function AddContactForm() {
+    const { t } = useTranslation();
     const methods = useForm<AddContactFormType>({
         resolver: zodResolver(addContactSchema),
         defaultValues: { identifier: "" },
@@ -25,7 +27,7 @@ function AddContactForm() {
                     isLoading={isLoading}
                     isDisabled={isLoading}
                 >
-                    <span className="text-lg font-semibold">Добавить контакт</span>
+                    <span className="text-lg font-semibold">{t('contacts.addContact')}</span>
                 </Button>
             </form>
         </FormProvider>

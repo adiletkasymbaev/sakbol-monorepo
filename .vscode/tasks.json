@@ -1,0 +1,43 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Backend",
+            "type": "shell",
+            "command": "cd sakbol_backend && venv\\Scripts\\activate && python manage.py runserver 127.0.0.1:9000",
+            "options": {
+                "shell": {
+                    "executable": "cmd.exe",
+                    "args": ["/d", "/c"]
+                }
+            },
+            "presentation": {
+                "group": "my-project",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Run Frontend",
+            "type": "shell",
+            "command": "cd sakbol_frontend && pnpm dev",
+            "options": {
+                "shell": {
+                    "executable": "cmd.exe",
+                    "args": ["/d", "/c"]
+                }
+            },
+            "presentation": {
+                "group": "my-project",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "IGNITION (DJANGO UNCHAINED, PNPM)",
+            "dependsOn": ["Run Backend", "Run Frontend"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

@@ -8,8 +8,10 @@ import NavItem from "./NavItem";
 import SosButton from "./SosButton";
 import useAuth from "../../store/useAuth";
 import { ProfileRoles } from "../enums/ProfileRoles";
+import { useTranslation } from "react-i18next";
 
 function NavBar() {
+    const { t } = useTranslation();
     const activeClass = "text-[#F39DAA]";
     const inactiveClass = "text-white";
     const userRole = useAuth((state) => state.userRole);
@@ -22,7 +24,7 @@ function NavBar() {
             <div className="flex justify-between relative items-center">
                 <div className="flex gap-5">
                     <NavItem link="/" icon={<IconHouse className="w-5 h-5" />} activeClass={activeClass} inactiveClass={inactiveClass}>
-                        Главная
+                        {t('navbar.home')}
                     </NavItem>
 
                     {showGroups ? (
@@ -32,7 +34,7 @@ function NavBar() {
                             activeClass={activeClass} 
                             inactiveClass={inactiveClass}
                         >
-                            Группы
+                            {t('navbar.groups')}
                         </NavItem>
                     ) : (
                         <NavItem 
@@ -41,7 +43,7 @@ function NavBar() {
                             activeClass={activeClass} 
                             inactiveClass={inactiveClass}
                         >
-                            Контакты
+                            {t('navbar.contacts')}
                         </NavItem>
                     )}
                 </div>
@@ -50,11 +52,11 @@ function NavBar() {
 
                 <div className="flex gap-5">
                     <NavItem link={"/" + UrlNames.SOS_SETTINGS} icon={<IconGear className="w-5 h-5" />} activeClass={activeClass} inactiveClass={inactiveClass}>
-                        Настройки
+                        {t('navbar.settings')}
                     </NavItem>
 
                     <NavItem link={"/" + UrlNames.SOS_PROFILE} icon={<IconPerson className="w-5 h-5" />} activeClass={activeClass} inactiveClass={inactiveClass}>
-                        Профиль
+                        {t('navbar.profile')}
                     </NavItem>
                 </div>
             </div>

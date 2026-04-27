@@ -51,3 +51,13 @@ export interface CreateAlertSignalBody {
 export interface CreateAlertSignalAnswerBody {
   alert_signal_id: number;
 }
+
+export interface SosSignalAnswer {
+  id: number;
+  sos_signal_id: number;
+  responder_user: {
+    id: number;
+    email: string;
+  };
+  created_at: string;
+}

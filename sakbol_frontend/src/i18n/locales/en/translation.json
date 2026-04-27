@@ -321,5 +321,17 @@
       "title": "I am a tourist",
       "description": "I am a tourist"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "loading": "Loading...",
+    "empty": "No notifications",
+    "unread": "unread",
+    "noNew": "No new notifications",
+    "answer": "Respond",
+    "answered": "Response sent",
+    "answerSuccess": "You responded to the signal",
+    "answerError": "Failed to respond"
   }
 }

@@ -40,3 +40,78 @@
   text-align: center;
   line-height: 1.2;
 }
+
+/* Custom Leaflet Draw Toolbar Styles */
+.leaflet-draw-toolbar {
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background-color: white !important;
+}
+
+.leaflet-draw-toolbar a {
+  background-color: white !important;
+  border: none !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  width: 42px !important;
+  height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  color: #6b7280 !important;
+  background-image: none !important;
+}
+
+.leaflet-draw-toolbar a:last-child {
+  border-bottom: none !important;
+}
+
+.leaflet-draw-toolbar a:hover {
+  background-color: #f3f4f6 !important;
+  color: #274193 !important;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-toolbar-button-enabled {
+  background-color: #274193 !important;
+  color: white !important;
+}
+
+.leaflet-draw-toolbar a svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Hide default tooltip since we use title attribute */
+.leaflet-draw-tooltip {
+  background: rgba(39, 65, 147, 0.9);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.leaflet-draw-tooltip:before {
+  border-right-color: rgba(39, 65, 147, 0.9);
+}
+
+/* Custom scrollbar for DrawPanel */
+.draw-panel-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.draw-panel-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.draw-panel-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.draw-panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

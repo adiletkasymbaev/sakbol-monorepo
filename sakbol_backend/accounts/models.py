@@ -65,3 +65,33 @@ class Profile(models.Model):
             self.user.save(update_fields=['role'])
 
         super().save(*args, **kwargs)
+
+class EmailVerificationCode(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='email_verification')
+    code = models.CharField(max_length=6, verbose_name="Код подтверждения")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Время создания")
+
+    class Meta:
+        verbose_name = 'Код подтверждения почты'
+        verbose_name_plural = 'Коды подтверждения почты'
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"
+
+class ActionOTP(models.Model):
+    ACTION_CHOICES = (
+        ('password_change', 'Смена пароля'),
+        ('email_change', 'Смена почты'),
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='action_otps')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name="Действие")
+    code = models.CharField(max_length=6, verbose_name="Код")
+    data = models.JSONField(null=True, blank=True, verbose_name="Данные")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Время создания")
+
+    class Meta:
+        verbose_name = 'OTP код действия'
+        verbose_name_plural = 'OTP коды действий'
+
+    def __str__(self):
+        return f"{self.user.email} - {self.action} - {self.code}"

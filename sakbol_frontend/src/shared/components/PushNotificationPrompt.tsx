@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Alert } from "@heroui/react";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import IconSos from "../icons/IconSos";
+import { useTranslation } from "react-i18next";
 
 /**
  * Компонент запрашивает разрешение на push-уведомления.
@@ -9,6 +10,7 @@ import IconSos from "../icons/IconSos";
  * Исчезает после получения разрешения или явного отказа пользователя.
  */
 export default function PushNotificationPrompt() {
+  const { t } = useTranslation();
   const { permission, isSubscribed, registerPush, error, isLoading } = usePushNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [userDismissed, setUserDismissed] = useState(false);
@@ -43,7 +45,7 @@ export default function PushNotificationPrompt() {
       setIsOpen(false);
     } else {
       // Показываем ошибку пользователю
-      setLocalError("Не удалось включить уведомления. Попробуйте позже или проверьте настройки браузера.");
+      setLocalError(t('push.prompt.errorTitle'));
     }
   };
 
@@ -73,18 +75,17 @@ export default function PushNotificationPrompt() {
         <ModalHeader className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <IconSos className="w-6 h-6 text-warning" />
-            <span>Включите уведомления</span>
+            <span>{t('push.prompt.title')}</span>
           </div>
         </ModalHeader>
         <ModalBody>
           <p className="text-sm text-gray-600">
-            Получайте мгновенные уведомления о SOS-сигналах от ваших контактов.
-            Это поможет вам быстро отреагировать в экстренной ситуации.
+            {t('push.prompt.description')}
           </p>
           <ul className="text-sm text-gray-500 list-disc list-inside mt-2">
-            <li>SOS-сигналы от близких</li>
-            <li>Предупреждения о геозонах</li>
-            <li>Важные оповещения</li>
+            <li>{t('push.prompt.features.sos')}</li>
+            <li>{t('push.prompt.features.geofence')}</li>
+            <li>{t('push.prompt.features.alerts')}</li>
           </ul>
 
           {/* Показываем ошибку если есть */}
@@ -93,7 +94,7 @@ export default function PushNotificationPrompt() {
               color="danger"
               variant="bordered"
               className="mt-3"
-              title="Ошибка"
+              title={t('common.error')}
               description={localError || error}
             />
           )}
@@ -104,7 +105,7 @@ export default function PushNotificationPrompt() {
             onPress={handleDismiss}
             color="default"
           >
-            Позже
+            {t('push.prompt.later')}
           </Button>
           <Button
             variant="solid"
@@ -112,7 +113,7 @@ export default function PushNotificationPrompt() {
             color="primary"
             isLoading={isLoading}
           >
-            Включить
+            {t('push.prompt.enable')}
           </Button>
         </ModalFooter>
       </ModalContent>

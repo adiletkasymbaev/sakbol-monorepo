@@ -16,7 +16,7 @@ class TourGroupModelTest(TestCase):
     def setUp(self):
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -50,11 +50,11 @@ class TourGroupMemberModelTest(TestCase):
     def setUp(self):
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.tourist = User.objects.create(
             email='tourist@test.com',
-            role='TOURIST'
+            role='tourist'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -114,7 +114,7 @@ class TourZoneModelTest(TestCase):
     def setUp(self):
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -147,7 +147,7 @@ class TourSessionModelTest(TestCase):
     def setUp(self):
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -198,11 +198,11 @@ class TourGroupAPITest(APITestCase):
         self.client = APIClient()
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.tourist = User.objects.create(
             email='tourist@test.com',
-            role='TOURIST'
+            role='tourist'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -219,7 +219,8 @@ class TourGroupAPITest(APITestCase):
 
     def test_create_group(self):
         """Создание группы"""
-        self.client.force_authenticate(user=self.agent)
+        agent2 = User.objects.create(email='agent2@test.com', role='tour_agency')
+        self.client.force_authenticate(user=agent2)
         data = {'name': 'New Group', 'description': 'Test'}
         response = self.client.post('/tour/groups/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -255,11 +256,11 @@ class TourGroupMemberAPITest(APITestCase):
         self.client = APIClient()
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.tourist = User.objects.create(
             email='tourist@test.com',
-            role='TOURIST'
+            role='tourist'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -308,7 +309,7 @@ class TourZoneAPITest(APITestCase):
         self.client = APIClient()
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -355,7 +356,7 @@ class TourSessionAPITest(APITestCase):
         self.client = APIClient()
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -399,11 +400,11 @@ class TourLocationUpdateTest(APITestCase):
         self.client = APIClient()
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.tourist = User.objects.create(
             email='tourist@test.com',
-            role='TOURIST'
+            role='tourist'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,
@@ -459,7 +460,7 @@ class TourGroupInviteAPITest(APITestCase):
         self.client = APIClient()
         self.agent = User.objects.create(
             email='agent@test.com',
-            role='TOUR_AGENCY'
+            role='tour_agency'
         )
         self.group = TourGroup.objects.create(
             agent=self.agent,

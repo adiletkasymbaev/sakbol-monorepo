@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { addToast } from "@heroui/react";
 import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import { useLocation } from "../../../store/useLocation";
+import { tourService } from "../../../shared/services/tourService";
 
 type LocationSyncProps = {
   intervalMs?: number;
@@ -116,17 +117,17 @@ export default function LocationSync({
 
           setGeoLocation(lat, lon);
           await updateMyLocation(lat, lon);
-        }
-
-        if (enableContactsFetch) {
-          await fetchContactsLocations();
+          try {
+            await tourService.updateLocation({ latitude: lat, longitude: lon });
+          } catch {
+            // Silently ignore — user may not be in a tour group
+          }
         }
       } catch (e: any) {
         console.warn("LocationSync geo error:", e);
 
         const msg = explainGeoError(e);
 
-        // если denied — показываем и останавливаем навсегда (как у тебя было)
         if (e?.code === 1) {
           addToast({
             title: ToastTypes.ERR,
@@ -134,14 +135,15 @@ export default function LocationSync({
             color: "danger",
           });
           stopTicks();
-        } else {
-          // остальные ошибки не спамим бесконечно: покажем 1 раз и продолжим
-          // addToast({
-          //   title: ToastTypes.ERR,
-          //   description: msg,
-          //   color: "danger",
-          // });
         }
+      }
+
+      try {
+        if (enableContactsFetch) {
+          await fetchContactsLocations();
+        }
+      } catch {
+        // Silently ignore contact fetch errors
       } finally {
         isTickRunningRef.current = false;
       }

@@ -80,7 +80,13 @@ export const useContacts = create<ContactsState>((set, get) => ({
       set((state) => ({
         contactsPendingList: [created, ...state.contactsPendingList],
       }));
-      await get().getIncoming();
+      
+      // Refetch all contact lists to ensure consistency across all roles
+      await Promise.all([
+        get().getPending(),
+        get().getAccepted(),
+        get().getIncoming(),
+      ]);
 
       return created;
     } catch (error) {
@@ -101,6 +107,13 @@ export const useContacts = create<ContactsState>((set, get) => ({
         contactsAcceptedList: state.contactsAcceptedList.filter((c) => c.id !== id),
         contactsIncomingList: state.contactsIncomingList.filter((c) => c.id !== id),
       }));
+
+      // Refetch all contact lists to ensure consistency across all roles
+      await Promise.all([
+        get().getPending(),
+        get().getAccepted(),
+        get().getIncoming(),
+      ]);
 
       return true;
     } catch (error) {
@@ -126,7 +139,12 @@ export const useContacts = create<ContactsState>((set, get) => ({
           : state.contactsAcceptedList,
       }));
 
-      await Promise.all([get().getIncoming(), get().getAccepted()]);
+      // Refetch all contact lists to ensure consistency across all roles
+      await Promise.all([
+        get().getPending(),
+        get().getAccepted(),
+        get().getIncoming(),
+      ]);
 
       return true;
     } catch (error) {

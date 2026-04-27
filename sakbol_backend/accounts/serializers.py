@@ -4,7 +4,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from sos.models import Location
-from .models import Profile
+from .models import Profile, EmailVerificationCode, ActionOTP
+from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
+from django.conf import settings
 from shared.enums import ProfileRole
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
@@ -56,7 +59,7 @@ class RegistrationSerializer(serializers.Serializer):
         role = profile_data.get('role', ProfileRole.USER)
 
         with transaction.atomic():
-            user = User.objects.create(email=email, role=role)
+            user = User.objects.create(email=email, role=role, is_active=False)
             user.set_password(password)
             user.save()
 
@@ -66,7 +69,60 @@ class RegistrationSerializer(serializers.Serializer):
             # Создание пустой location
             Location.objects.create(user=user)
 
+            # Генерация кода и отправка
+            code = get_random_string(length=6, allowed_chars='0123456789')
+            EmailVerificationCode.objects.create(user=user, code=code)
+
+            send_mail(
+                'Подтверждение почты Sakbol',
+                f'Ваш код подтверждения почты: {code}\nВведите его для завершения регистрации.',
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+
         return user
+
+class VerifyEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        code = attrs.get('code')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"email": "Пользователь не найден."})
+
+        if user.is_active:
+            raise serializers.ValidationError({"email": "Пользователь уже активирован."})
+
+        try:
+            verification = EmailVerificationCode.objects.get(user=user)
+        except EmailVerificationCode.DoesNotExist:
+            raise serializers.ValidationError({"code": "Код не найден. Возможно, нужно запросить новый."})
+
+        if verification.code != code:
+            raise serializers.ValidationError({"code": "Неверный код."})
+
+        # Активация
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+        verification.delete()
+
+        # Генерация токенов
+        refresh = TokenObtainPairSerializer.get_token(user)
+
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user_id': user.id,
+            'email': user.email,
+            'role': user.role
+        }
+
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'
@@ -78,7 +134,7 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         user = authenticate(email=email, password=password)
 
         if user is None:
-            raise AuthenticationFailed("Неверный email или пароль")
+            raise AuthenticationFailed("Неверный email, пароль, или аккаунт не активирован")
 
         refresh = self.get_token(user)
 
@@ -117,6 +173,7 @@ class AvatarUpdateSerializer(serializers.Serializer):
 
 
 class ProfileDetailSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='user.id', read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
     is_gov = serializers.BooleanField(source='user.is_gov', read_only=True)
 
@@ -126,6 +183,7 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = [
+            "id",
             "user_email",
             "is_gov",
             "first_name",
@@ -174,3 +232,29 @@ class ProfileMiniSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ("user", "first_name", "last_name", "identifier", "avatar")
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = [
+            "first_name", "last_name", "birth_date", "city", 
+            "street", "house_number", "apartment_number", 
+            "med_info", "phone_number"
+        ]
+
+class RequestChangePasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(min_length=8, write_only=True)
+
+class VerifyChangePasswordSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=6)
+
+class RequestChangeEmailSerializer(serializers.Serializer):
+    new_email = serializers.EmailField()
+
+    def validate_new_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Эта почта уже занята.")
+        return value
+
+class VerifyChangeEmailSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=6)

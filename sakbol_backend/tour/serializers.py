@@ -1,10 +1,20 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import TourGroup, TourGroupMember, TourZone, TourSession, ZoneViolation, MemberStatus
-from accounts.serializers import ProfileMiniSerializer
+from accounts.serializers import ProfileMiniSerializer, SimpleUserSerializer
+from accounts.models import Profile as AccountProfile
 from shared.enums import ProfileRole
 
 User = get_user_model()
+
+
+class TourAgentSerializer(serializers.ModelSerializer):
+    """Профиль тур-агента с телефоном для отображения туристам"""
+    user = SimpleUserSerializer(read_only=True)
+
+    class Meta:
+        model = AccountProfile
+        fields = ("user", "first_name", "last_name", "identifier", "avatar", "phone_number")
 
 
 class TourGroupMemberSerializer(serializers.ModelSerializer):
@@ -23,7 +33,7 @@ class TourGroupMemberSerializer(serializers.ModelSerializer):
 
 class TourGroupMemberListSerializer(serializers.ModelSerializer):
     """Сериализатор участника группы для списка"""
-    user = ProfileMiniSerializer(read_only=True)
+    user = ProfileMiniSerializer(source='user.profile', read_only=True)
 
     class Meta:
         model = TourGroupMember
@@ -127,7 +137,7 @@ class TourSessionDetailSerializer(serializers.ModelSerializer):
 
 class TourGroupSerializer(serializers.ModelSerializer):
     """Сериализатор группы туристов"""
-    agent = ProfileMiniSerializer(read_only=True)
+    agent = TourAgentSerializer(source='agent.profile', read_only=True)
     invite_link = serializers.SerializerMethodField()
     active_members_count = serializers.SerializerMethodField()
     pending_members_count = serializers.SerializerMethodField()
@@ -163,11 +173,11 @@ class TourGroupSerializer(serializers.ModelSerializer):
 
 class TourGroupDetailSerializer(serializers.ModelSerializer):
     """Сериализатор группы с деталями"""
-    agent = ProfileMiniSerializer(read_only=True)
+    agent = TourAgentSerializer(source='agent.profile', read_only=True)
     invite_link = serializers.SerializerMethodField()
-    members = TourGroupMemberListSerializer(source='members.all', many=True, read_only=True)
-    zones = TourZoneListSerializer(source='zones.filter(is_active=True)', many=True, read_only=True)
-    active_session = TourSessionSerializer(source='tour_sessions.filter(status=active).first', read_only=True)
+    members = serializers.SerializerMethodField()
+    zones = serializers.SerializerMethodField()
+    active_session = serializers.SerializerMethodField()
     active_members_count = serializers.SerializerMethodField()
     pending_members_count = serializers.SerializerMethodField()
     zones_count = serializers.SerializerMethodField()
@@ -188,6 +198,20 @@ class TourGroupDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return obj.get_invite_link(request)
 
+    def get_members(self, obj):
+        members = obj.members.all()
+        return TourGroupMemberListSerializer(members, many=True).data
+
+    def get_zones(self, obj):
+        zones = obj.zones.filter(is_active=True)
+        return TourZoneSerializer(zones, many=True).data
+
+    def get_active_session(self, obj):
+        session = obj.tour_sessions.filter(status='active').first()
+        if session:
+            return TourSessionSerializer(session).data
+        return None
+
     def get_active_members_count(self, obj):
         return obj.active_members_count()
 
@@ -195,7 +219,7 @@ class TourGroupDetailSerializer(serializers.ModelSerializer):
         return obj.pending_members_count()
 
     def get_zones_count(self, obj):
-        return obj.zones.count()
+        return obj.zones.filter(is_active=True).count()
 
     def get_has_active_session(self, obj):
         return obj.tour_sessions.filter(status='active').exists()
