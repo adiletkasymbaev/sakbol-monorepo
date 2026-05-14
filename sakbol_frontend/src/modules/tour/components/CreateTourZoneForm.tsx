@@ -9,6 +9,8 @@ import "leaflet/dist/leaflet.css";
 import { createTourZoneSchema, type CreateTourZoneFormType } from "../utils/schemas";
 import { FormInput } from "../../../shared/components/FormInput";
 import useTour from "../../../store/useTour";
+import { nativeBridge } from "../../../shared/services/nativeBridge";
+import { nativeService } from "../../../shared/services/nativeService";
 
 interface CreateTourZoneFormProps {
   groupId: string;
@@ -78,6 +80,30 @@ export default function CreateTourZoneForm({ groupId, onSuccess, onCancel }: Cre
   };
 
   const handleGetUserLocation = () => {
+    // Приоритет нативной геолокации из WebView
+    if (nativeBridge.isNativeApp()) {
+      const nativeLoc = nativeService.getLastLocation();
+      if (nativeLoc) {
+        const pos: [number, number] = [nativeLoc.latitude, nativeLoc.longitude];
+        setUserPosition(pos);
+        if (mapRef.current) {
+          mapRef.current.flyTo(pos, 15);
+        }
+        addToast({
+          title: ToastTypes.OK,
+          description: "Местоположение получено из приложения",
+          color: "success",
+        });
+        return;
+      }
+      addToast({
+        title: ToastTypes.ERR,
+        description: "Геолокация из приложения ещё не доступна",
+        color: "danger",
+      });
+      return;
+    }
+
     if (!navigator.geolocation) {
       addToast({
         title: ToastTypes.ERR,

@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import { tourService } from "../../../shared/services/tourService";
 import useAuth from "../../../store/useAuth";
 import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
+import { nativeBridge } from "../../../shared/services/nativeBridge";
+import { nativeService } from "../../../shared/services/nativeService";
 
 /**
  * Компонент для фонового обновления местоположения во время активного тура.
@@ -20,20 +22,29 @@ export default function TourLocationUpdater() {
 
     // Функция получения и отправки геолокации
     const updateLocation = async () => {
-      if (!navigator.geolocation) return;
-
       try {
-        const position = await new Promise<GeolocationPosition>(
-          (resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0,
-            });
-          }
-        );
+        let latitude: number;
+        let longitude: number;
 
-        const { latitude, longitude } = position.coords;
+        if (nativeBridge.isNativeApp()) {
+          const nativeLoc = nativeService.getLastLocation();
+          if (!nativeLoc) return;
+          latitude = nativeLoc.latitude;
+          longitude = nativeLoc.longitude;
+        } else {
+          if (!navigator.geolocation) return;
+          const position = await new Promise<GeolocationPosition>(
+            (resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+              });
+            }
+          );
+          latitude = position.coords.latitude;
+          longitude = position.coords.longitude;
+        }
 
         // Отправляем на бэкенд
         await tourService.updateLocation({ latitude, longitude });

@@ -3,6 +3,8 @@ import { addToast } from "@heroui/react";
 import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import { useLocation } from "../../../store/useLocation";
 import { tourService } from "../../../shared/services/tourService";
+import { nativeBridge } from "../../../shared/services/nativeBridge";
+import { nativeService } from "../../../shared/services/nativeService";
 
 type LocationSyncProps = {
   intervalMs?: number;
@@ -111,16 +113,32 @@ export default function LocationSync({
 
       try {
         if (enableMyLocationUpdate) {
-          const pos = await getGeoOnce(stableGeoOptions);
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
+          if (nativeBridge.isNativeApp()) {
+            const nativeLoc = nativeService.getLastLocation();
+            if (nativeLoc) {
+              const lat = nativeLoc.latitude;
+              const lon = nativeLoc.longitude;
 
-          setGeoLocation(lat, lon);
-          await updateMyLocation(lat, lon);
-          try {
-            await tourService.updateLocation({ latitude: lat, longitude: lon });
-          } catch {
-            // Silently ignore — user may not be in a tour group
+              setGeoLocation(lat, lon);
+              // updateMyLocation не вызываем — nativeService уже отправит на бэкенд
+              try {
+                await tourService.updateLocation({ latitude: lat, longitude: lon });
+              } catch {
+                // Silently ignore — user may not be in a tour group
+              }
+            }
+          } else {
+            const pos = await getGeoOnce(stableGeoOptions);
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+
+            setGeoLocation(lat, lon);
+            await updateMyLocation(lat, lon);
+            try {
+              await tourService.updateLocation({ latitude: lat, longitude: lon });
+            } catch {
+              // Silently ignore — user may not be in a tour group
+            }
           }
         }
       } catch (e: any) {

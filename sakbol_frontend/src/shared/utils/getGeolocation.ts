@@ -1,4 +1,6 @@
 // src/shared/utils/geolocation.ts
+import { nativeBridge } from "../services/nativeBridge";
+import { nativeService } from "../services/nativeService";
 
 export interface GeolocationOptions {
   enableHighAccuracy?: boolean;
@@ -37,6 +39,30 @@ export function getGeolocation(
   } = options;
 
   return new Promise((resolve, reject) => {
+    // 0. Если запущено в нативном WebView — используем геолокацию из приложения
+    if (nativeBridge.isNativeApp()) {
+      const nativeLoc = nativeService.getLastLocation();
+      if (nativeLoc) {
+        const result: GeolocationResult = {
+          latitude: nativeLoc.latitude,
+          longitude: nativeLoc.longitude,
+          accuracy: 0,
+          timestamp: nativeLoc.timestamp,
+        };
+        try {
+          if (callbacks?.onSuccess) {
+            Promise.resolve(callbacks.onSuccess(result)).then(() => resolve()).catch(reject);
+          } else {
+            resolve();
+          }
+        } catch (e) {
+          reject(e);
+        }
+        return;
+      }
+      // Если нативная локация ещё не пришла, fallback на браузер
+    }
+
     // 1. Проверка поддержки API
     if (!navigator.geolocation) {
       callbacks?.onUnavailable?.();

@@ -18,6 +18,7 @@ import TourLocationUpdater from "./modules/tour/components/TourLocationUpdater"
 import TourTimer from "./modules/tour/components/TourTimer"
 import NotificationsPage from "./modules/notifications/pages/NotificationsPage"
 import { ProfileRoles } from "./shared/enums/ProfileRoles"
+import { NativeSettings } from "./modules/settings/NativeSettings"
 
 const TOUR_ROLES = [ProfileRoles.TOUR_AGENCY, ProfileRoles.TOURIST, ProfileRoles.USER];
 
@@ -40,6 +41,7 @@ function App() {
           <Route path={UrlNames.SOS_SETTINGS} element={<SettingsPage/>}/>
           <Route path={UrlNames.SOS_PROFILE} element={<ProfilePage/>}/>
           <Route path={UrlNames.SOS_NOTIFICATIONS} element={<NotificationsPage/>}/>
+          <Route path="/native-settings" element={<NativeSettings />}/>
 
           {/* Tour groups routes — доступно только туристам и агентам */}
           <Route path={UrlNames.TOUR_GROUPS} element={
