@@ -93,6 +93,27 @@ export default function LocationSync({
     ]
   );
 
+  // ── Нативная геолокация (WebView): слушаем push-обновления от Android ──
+  useEffect(() => {
+    if (!enableMyLocationUpdate) return;
+    if (!nativeBridge.isNativeApp()) return;
+
+    // Сразу запрашиваем текущую локацию у Android
+    nativeBridge.requestCurrentLocation();
+
+    const unsubscribe = nativeBridge.onLocationUpdate((data) => {
+      setGeoLocation(data.latitude, data.longitude);
+      // nativeService уже отправит на /general/locations_module/update/
+      tourService.updateLocation({ latitude: data.latitude, longitude: data.longitude }).catch(() => {});
+    });
+
+    return () => {
+      // nativeBridge.onLocationUpdate просто перезаписывает callback,
+      // поэтому отписка не нужна — новый компонент перезапишет
+    };
+  }, [enableMyLocationUpdate, setGeoLocation]);
+
+  // ── Браузерная геолокация + контакты ──
   useEffect(() => {
     let isMounted = true;
 
@@ -112,33 +133,17 @@ export default function LocationSync({
       isTickRunningRef.current = true;
 
       try {
-        if (enableMyLocationUpdate) {
-          if (nativeBridge.isNativeApp()) {
-            const nativeLoc = nativeService.getLastLocation();
-            if (nativeLoc) {
-              const lat = nativeLoc.latitude;
-              const lon = nativeLoc.longitude;
+        if (enableMyLocationUpdate && !nativeBridge.isNativeApp()) {
+          const pos = await getGeoOnce(stableGeoOptions);
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
 
-              setGeoLocation(lat, lon);
-              // updateMyLocation не вызываем — nativeService уже отправит на бэкенд
-              try {
-                await tourService.updateLocation({ latitude: lat, longitude: lon });
-              } catch {
-                // Silently ignore — user may not be in a tour group
-              }
-            }
-          } else {
-            const pos = await getGeoOnce(stableGeoOptions);
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-
-            setGeoLocation(lat, lon);
-            await updateMyLocation(lat, lon);
-            try {
-              await tourService.updateLocation({ latitude: lat, longitude: lon });
-            } catch {
-              // Silently ignore — user may not be in a tour group
-            }
+          setGeoLocation(lat, lon);
+          await updateMyLocation(lat, lon);
+          try {
+            await tourService.updateLocation({ latitude: lat, longitude: lon });
+          } catch {
+            // Silently ignore — user may not be in a tour group
           }
         }
       } catch (e: any) {

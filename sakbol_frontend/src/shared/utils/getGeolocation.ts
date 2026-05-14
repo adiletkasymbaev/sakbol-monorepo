@@ -38,10 +38,20 @@ export function getGeolocation(
     maximumAge = 0,
   } = options;
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     // 0. Если запущено в нативном WebView — используем геолокацию из приложения
     if (nativeBridge.isNativeApp()) {
-      const nativeLoc = nativeService.getLastLocation();
+      let nativeLoc = nativeService.getLastLocation();
+
+      // Если локации ещё нет — ждём её от Android (с таймаутом)
+      if (!nativeLoc) {
+        try {
+          nativeLoc = await nativeService.waitForLocation(timeout);
+        } catch {
+          // native location недоступна — продолжаем fallback
+        }
+      }
+
       if (nativeLoc) {
         const result: GeolocationResult = {
           latitude: nativeLoc.latitude,
@@ -51,16 +61,15 @@ export function getGeolocation(
         };
         try {
           if (callbacks?.onSuccess) {
-            Promise.resolve(callbacks.onSuccess(result)).then(() => resolve()).catch(reject);
-          } else {
-            resolve();
+            await callbacks.onSuccess(result);
           }
+          resolve();
         } catch (e) {
           reject(e);
         }
         return;
       }
-      // Если нативная локация ещё не пришла, fallback на браузер
+      // Если нативная локация недоступна, fallback на браузер
     }
 
     // 1. Проверка поддержки API

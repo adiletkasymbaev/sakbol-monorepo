@@ -63,7 +63,6 @@ export interface NativePermissions {
 }
 
 class NativeBridge {
-  private isNative: boolean = false;
   private callbacks: {
     onLocationUpdate?: (data: LocationData) => void;
     onLocationStatusChange?: (active: boolean) => void;
@@ -74,7 +73,6 @@ class NativeBridge {
   } = {};
 
   constructor() {
-    this.isNative = this.detectNative();
     this.setupGlobalHandlers();
     this.setupReadyHandler();
   }
@@ -86,20 +84,18 @@ class NativeBridge {
     if (typeof window === 'undefined') return;
     window.SakbolNativeReady = () => {
       console.log('[NativeBridge] Native side reported ready');
-      this.isNative = this.detectNative();
     };
   }
 
   /**
-   * Определяет, запущено ли приложение в нативном WebView
+   * Определяет, запущено ли приложение в нативном WebView.
+   * НЕ кешируем — проверяем каждый раз, т.к. JS Interface может появиться позже.
    */
-  private detectNative(): boolean {
+  isNativeApp(): boolean {
     if (typeof window === 'undefined') return false;
-    // Проверяем наличие Android JS Interface
     if (window.SakbolNative !== undefined && typeof window.SakbolNative === 'object') {
       return true;
     }
-    // Fallback по User-Agent (MainActivity.kt добавляет "AppWebView/sakbol")
     if (typeof navigator !== 'undefined' && navigator.userAgent?.includes('AppWebView/sakbol')) {
       return true;
     }
@@ -107,10 +103,32 @@ class NativeBridge {
   }
 
   /**
-   * Проверяет, доступен ли нативный функционал
+   * Ждёт получение локации от нативного кода (с таймаутом).
    */
-  isNativeApp(): boolean {
-    return this.isNative;
+  waitForLocation(timeoutMs = 10_000): Promise<LocationData> {
+    return new Promise((resolve, reject) => {
+      // если уже есть последняя локация — сразу отдаём
+      if (typeof window !== 'undefined' && (window as any).__lastNativeLocation) {
+        resolve((window as any).__lastNativeLocation as LocationData);
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        reject(new Error('Timeout waiting for native location'));
+      }, timeoutMs);
+
+      const handler = (data: LocationData) => {
+        clearTimeout(timer);
+        this.callbacks.onLocationUpdate = originalHandler;
+        resolve(data);
+      };
+
+      const originalHandler = this.callbacks.onLocationUpdate;
+      this.callbacks.onLocationUpdate = (data: LocationData) => {
+        originalHandler?.(data);
+        handler(data);
+      };
+    });
   }
 
   /**

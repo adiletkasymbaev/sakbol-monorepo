@@ -20,44 +20,53 @@ export default function TourLocationUpdater() {
   useEffect(() => {
     if (!userId || !isTourist) return;
 
-    // Функция получения и отправки геолокации
+    // ── Нативный WebView: слушаем push-обновления от Android ──
+    if (nativeBridge.isNativeApp()) {
+      // Запрашиваем текущую локацию сразу
+      nativeBridge.requestCurrentLocation();
+
+      const handleLocation = (data: { latitude: number; longitude: number }) => {
+        tourService.updateLocation({ latitude: data.latitude, longitude: data.longitude }).catch(() => {});
+      };
+
+      // Подписываемся на обновления от nativeBridge
+      nativeBridge.onLocationUpdate(handleLocation);
+
+      // Также отправляем каждые 30 секунд (на случай если Android не шлёт автоматически)
+      intervalRef.current = setInterval(() => {
+        nativeBridge.requestCurrentLocation();
+      }, 30000);
+
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+      };
+    }
+
+    // ── Браузер: стандартный polling ──
     const updateLocation = async () => {
       try {
-        let latitude: number;
-        let longitude: number;
+        if (!navigator.geolocation) return;
+        const position = await new Promise<GeolocationPosition>(
+          (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            });
+          }
+        );
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
 
-        if (nativeBridge.isNativeApp()) {
-          const nativeLoc = nativeService.getLastLocation();
-          if (!nativeLoc) return;
-          latitude = nativeLoc.latitude;
-          longitude = nativeLoc.longitude;
-        } else {
-          if (!navigator.geolocation) return;
-          const position = await new Promise<GeolocationPosition>(
-            (resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0,
-              });
-            }
-          );
-          latitude = position.coords.latitude;
-          longitude = position.coords.longitude;
-        }
-
-        // Отправляем на бэкенд
         await tourService.updateLocation({ latitude, longitude });
       } catch (error) {
-        // Тихая ошибка - не спамим пользователя
         console.warn("Failed to update tour location:", error);
       }
     };
 
-    // Первое обновление сразу
     updateLocation();
-
-    // Затем каждые 30 секунд
     intervalRef.current = setInterval(updateLocation, 30000);
 
     return () => {

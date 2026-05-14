@@ -37,6 +37,10 @@ class NativeService {
     // Слушаем обновления геолокации
     nativeBridge.onLocationUpdate((data: LocationData) => {
       this.lastLocation = data;
+      // Кешируем в window для мгновенного доступа
+      if (typeof window !== 'undefined') {
+        (window as any).__lastNativeLocation = data;
+      }
       this.sendLocationToBackend(data);
     });
 
@@ -188,6 +192,22 @@ class NativeService {
    */
   getLastLocation(): LocationData | null {
     return this.lastLocation;
+  }
+
+  /**
+   * Ждёт получение локации от нативного кода.
+   * Полезно когда getLastLocation() ещё null.
+   */
+  waitForLocation(timeoutMs = 10_000): Promise<LocationData> {
+    return nativeBridge.waitForLocation(timeoutMs);
+  }
+
+  /**
+   * Запрашивает текущую локацию у нативного кода и ждёт результат.
+   */
+  async requestCurrentLocation(timeoutMs = 10_000): Promise<LocationData> {
+    nativeBridge.requestCurrentLocation();
+    return this.waitForLocation(timeoutMs);
   }
 }
 
