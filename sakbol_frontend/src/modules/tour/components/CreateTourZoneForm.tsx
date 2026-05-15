@@ -79,12 +79,18 @@ export default function CreateTourZoneForm({ groupId, onSuccess, onCancel }: Cre
     methods.setValue("center_lng", 0);
   };
 
-  const handleGetUserLocation = () => {
+  const handleGetUserLocation = async () => {
     // Приоритет нативной геолокации из WebView
     if (nativeBridge.isNativeApp()) {
-      const nativeLoc = nativeService.getLastLocation();
-      if (nativeLoc) {
-        const pos: [number, number] = [nativeLoc.latitude, nativeLoc.longitude];
+      addToast({
+        title: "Геолокация",
+        description: "Получаем местоположение из приложения...",
+        color: "primary",
+      });
+
+      try {
+        const data = await nativeService.requestCurrentLocation(15000);
+        const pos: [number, number] = [data.latitude, data.longitude];
         setUserPosition(pos);
         if (mapRef.current) {
           mapRef.current.flyTo(pos, 15);
@@ -94,13 +100,13 @@ export default function CreateTourZoneForm({ groupId, onSuccess, onCancel }: Cre
           description: "Местоположение получено из приложения",
           color: "success",
         });
-        return;
+      } catch {
+        addToast({
+          title: ToastTypes.ERR,
+          description: "Не удалось получить местоположение из приложения",
+          color: "danger",
+        });
       }
-      addToast({
-        title: ToastTypes.ERR,
-        description: "Геолокация из приложения ещё не доступна",
-        color: "danger",
-      });
       return;
     }
 

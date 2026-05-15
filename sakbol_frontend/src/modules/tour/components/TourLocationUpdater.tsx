@@ -3,12 +3,11 @@ import { tourService } from "../../../shared/services/tourService";
 import useAuth from "../../../store/useAuth";
 import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
 import { nativeBridge } from "../../../shared/services/nativeBridge";
-import { nativeService } from "../../../shared/services/nativeService";
 
 /**
  * Компонент для фонового обновления местоположения во время активного тура.
- * Отправляет координаты на бэкенд каждые 30 секунд.
- * Работает ТОЛЬКО для туристов (tourist/user) с активной ролью.
+ * В WebView получает координаты через JS-мост.
+ * В браузере — через navigator.geolocation.
  */
 export default function TourLocationUpdater() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -16,35 +15,30 @@ export default function TourLocationUpdater() {
   const userRole = useAuth((state) => state.userRole);
 
   const isTourist = userRole === ProfileRoles.TOURIST || userRole === ProfileRoles.USER;
+  const isNative = nativeBridge.isNativeApp();
 
   useEffect(() => {
     if (!userId || !isTourist) return;
 
-    // ── Нативный WebView: слушаем push-обновления от Android ──
-    if (nativeBridge.isNativeApp()) {
-      // Запрашиваем текущую локацию сразу
+    // ── Нативный WebView ──
+    if (isNative) {
       nativeBridge.requestCurrentLocation();
 
-      const handleLocation = (data: { latitude: number; longitude: number }) => {
+      const unsub = nativeBridge.onLocationUpdate((data) => {
         tourService.updateLocation({ latitude: data.latitude, longitude: data.longitude }).catch(() => {});
-      };
+      });
 
-      // Подписываемся на обновления от nativeBridge
-      nativeBridge.onLocationUpdate(handleLocation);
-
-      // Также отправляем каждые 30 секунд (на случай если Android не шлёт автоматически)
       intervalRef.current = setInterval(() => {
         nativeBridge.requestCurrentLocation();
       }, 30000);
 
       return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-        }
+        unsub();
+        if (intervalRef.current) clearInterval(intervalRef.current);
       };
     }
 
-    // ── Браузер: стандартный polling ──
+    // ── Браузер ──
     const updateLocation = async () => {
       try {
         if (!navigator.geolocation) return;
@@ -59,7 +53,6 @@ export default function TourLocationUpdater() {
         );
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-
         await tourService.updateLocation({ latitude, longitude });
       } catch (error) {
         console.warn("Failed to update tour location:", error);
@@ -70,11 +63,9 @@ export default function TourLocationUpdater() {
     intervalRef.current = setInterval(updateLocation, 30000);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [userId, isTourist]);
+  }, [userId, isTourist, isNative]);
 
-  return null; // Этот компонент ничего не рендерит
+  return null;
 }

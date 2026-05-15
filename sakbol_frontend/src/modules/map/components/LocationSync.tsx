@@ -4,7 +4,6 @@ import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import { useLocation } from "../../../store/useLocation";
 import { tourService } from "../../../shared/services/tourService";
 import { nativeBridge } from "../../../shared/services/nativeBridge";
-import { nativeService } from "../../../shared/services/nativeService";
 
 type LocationSyncProps = {
   intervalMs?: number;
@@ -46,7 +45,6 @@ async function getGeoOnce(options?: PositionOptions): Promise<GeolocationPositio
     throw new Error("Геолокация не поддерживается");
   }
 
-  // если есть Permissions API — заранее понимаем, что denied
   try {
     const perm = await (navigator as any).permissions?.query?.({ name: "geolocation" });
     if (perm?.state === "denied") {
@@ -67,7 +65,6 @@ export default function LocationSync({
   intervalMs = 30_000,
   enableContactsFetch = true,
   enableMyLocationUpdate = true,
-  // для ПК safer defaults: highAccuracy часто мешает, timeout лучше больше
   geolocationOptions = {
     enableHighAccuracy: false,
     timeout: 20_000,
@@ -81,8 +78,8 @@ export default function LocationSync({
   const isTickRunningRef = useRef(false);
   const isStoppedRef = useRef(false);
   const timerIdRef = useRef<number | null>(null);
+  const isNativeRef = useRef(nativeBridge.isNativeApp());
 
-  // стабилизируем options, чтобы useEffect не пересоздавался из-за нового объекта
   const stableGeoOptions = useMemo(
     () => geolocationOptions,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,27 +90,24 @@ export default function LocationSync({
     ]
   );
 
-  // ── Нативная геолокация (WebView): слушаем push-обновления от Android ──
+  // ── Нативный WebView: push-обновления от Android ──
   useEffect(() => {
     if (!enableMyLocationUpdate) return;
-    if (!nativeBridge.isNativeApp()) return;
+    if (!isNativeRef.current) return;
 
-    // Сразу запрашиваем текущую локацию у Android
+    // Запрашиваем текущую локацию сразу
     nativeBridge.requestCurrentLocation();
 
-    const unsubscribe = nativeBridge.onLocationUpdate((data) => {
+    const unsub = nativeBridge.onLocationUpdate((data) => {
       setGeoLocation(data.latitude, data.longitude);
-      // nativeService уже отправит на /general/locations_module/update/
+      // nativeService уже отправляет на /general/locations_module/update/
       tourService.updateLocation({ latitude: data.latitude, longitude: data.longitude }).catch(() => {});
     });
 
-    return () => {
-      // nativeBridge.onLocationUpdate просто перезаписывает callback,
-      // поэтому отписка не нужна — новый компонент перезапишет
-    };
+    return unsub;
   }, [enableMyLocationUpdate, setGeoLocation]);
 
-  // ── Браузерная геолокация + контакты ──
+  // ── Браузер: polling геолокации + контакты ──
   useEffect(() => {
     let isMounted = true;
 
@@ -133,7 +127,7 @@ export default function LocationSync({
       isTickRunningRef.current = true;
 
       try {
-        if (enableMyLocationUpdate && !nativeBridge.isNativeApp()) {
+        if (enableMyLocationUpdate && !isNativeRef.current) {
           const pos = await getGeoOnce(stableGeoOptions);
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
@@ -148,15 +142,9 @@ export default function LocationSync({
         }
       } catch (e: any) {
         console.warn("LocationSync geo error:", e);
-
         const msg = explainGeoError(e);
-
         if (e?.code === 1) {
-          addToast({
-            title: ToastTypes.ERR,
-            description: msg,
-            color: "danger",
-          });
+          addToast({ title: ToastTypes.ERR, description: msg, color: "danger" });
           stopTicks();
         }
       }

@@ -18,24 +18,6 @@ interface UseNativeReturn {
   refreshPermissions: () => void;
 }
 
-/**
- * React Hook для работы с нативным Android функционалом
- * 
- * Пример использования:
- * ```tsx
- * function MyComponent() {
- *   const { isNative, lastLocation, enableNotifications } = useNative();
- *   
- *   useEffect(() => {
- *     if (isNative) {
- *       enableNotifications();
- *     }
- *   }, [isNative]);
- *   
- *   return <div>Location: {lastLocation?.latitude}</div>;
- * }
- * ```
- */
 export function useNative(): UseNativeReturn {
   const [isNative, setIsNative] = useState(false);
   const [permissions, setPermissions] = useState<NativePermissions | null>(null);
@@ -43,23 +25,24 @@ export function useNative(): UseNativeReturn {
   const [isLocationActive, setIsLocationActive] = useState(false);
 
   useEffect(() => {
-    // Определяем, нативное ли приложение
     setIsNative(nativeBridge.isNativeApp());
 
-    // Устанавливаем слушатели
-    nativeBridge.onLocationUpdate((data) => {
+    const unsubLoc = nativeBridge.onLocationUpdate((data) => {
       setLastLocation(data);
     });
 
-    nativeBridge.onLocationStatusChange((active) => {
+    const unsubStatus = nativeBridge.onLocationStatusChange((active) => {
       setIsLocationActive(active);
     });
 
-    // Загружаем текущие разрешения
     refreshPermissions();
-
-    // Инициализируем сервис
     nativeService.initialize();
+
+    return () => {
+      unsubLoc();
+      unsubStatus();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshPermissions = useCallback(() => {
@@ -106,42 +89,24 @@ export function useNative(): UseNativeReturn {
   };
 }
 
-/**
- * Hook для отслеживания SOS событий
- * 
- * Пример:
- * ```tsx
- * function SOSScreen() {
- *   useSOSListener((sosData) => {
- *     console.log('SOS triggered:', sosData);
- *     // Показать экстренный экран
- *   });
- *   
- *   return <div>SOS Screen</div>;
- * }
- * ```
- */
 export function useSOSListener(callback: (data: SOSData) => void) {
   useEffect(() => {
-    nativeBridge.onSOS(callback);
+    const unsub = nativeBridge.onSOS(callback);
+    return unsub;
   }, [callback]);
 }
 
-/**
- * Hook для отслеживания предупреждений
- */
 export function useWarningListener(callback: (data: WarningData) => void) {
   useEffect(() => {
-    nativeBridge.onWarning(callback);
+    const unsub = nativeBridge.onWarning(callback);
+    return unsub;
   }, [callback]);
 }
 
-/**
- * Hook для отслеживания обновлений геолокации
- */
 export function useLocationListener(callback: (data: LocationData) => void) {
   useEffect(() => {
-    nativeBridge.onLocationUpdate(callback);
+    const unsub = nativeBridge.onLocationUpdate(callback);
+    return unsub;
   }, [callback]);
 }
 

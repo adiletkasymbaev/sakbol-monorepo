@@ -38,19 +38,10 @@ export function getGeolocation(
     maximumAge = 0,
   } = options;
 
-  return new Promise(async (resolve, reject) => {
-    // 0. Если запущено в нативном WebView — используем геолокацию из приложения
-    if (nativeBridge.isNativeApp()) {
-      let nativeLoc = nativeService.getLastLocation();
-
-      // Если локации ещё нет — ждём её от Android (с таймаутом)
-      if (!nativeLoc) {
-        try {
-          nativeLoc = await nativeService.waitForLocation(timeout);
-        } catch {
-          // native location недоступна — продолжаем fallback
-        }
-      }
+  // ── Нативный WebView: только мост, никакого navigator.geolocation ──
+  if (nativeBridge.isNativeApp()) {
+    return new Promise(async (resolve, reject) => {
+      const nativeLoc = nativeService.getLastLocation();
 
       if (nativeLoc) {
         const result: GeolocationResult = {
@@ -60,19 +51,34 @@ export function getGeolocation(
           timestamp: nativeLoc.timestamp,
         };
         try {
-          if (callbacks?.onSuccess) {
-            await callbacks.onSuccess(result);
-          }
+          if (callbacks?.onSuccess) await callbacks.onSuccess(result);
           resolve();
-        } catch (e) {
-          reject(e);
-        }
+        } catch (e) { reject(e); }
         return;
       }
-      // Если нативная локация недоступна, fallback на браузер
-    }
 
-    // 1. Проверка поддержки API
+      // Локации ещё нет — ждём от Android
+      try {
+        const data = await nativeService.waitForLocation(timeout);
+        const result: GeolocationResult = {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          accuracy: 0,
+          timestamp: data.timestamp,
+        };
+        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
+        resolve();
+      } catch (err: any) {
+        const error: GeolocationError = { code: 2, message: "Местоположение из приложения недоступно" };
+        callbacks?.onError?.(error);
+        callbacks?.onUnavailable?.();
+        reject(error);
+      }
+    });
+  }
+
+  // ── Браузер: стандартный navigator.geolocation ──
+  return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       callbacks?.onUnavailable?.();
       const error: GeolocationError = { code: 0, message: "Геолокация не поддерживается" };
@@ -81,7 +87,6 @@ export function getGeolocation(
       return;
     }
 
-    // 2. Проверка безопасного контекста (HTTPS / localhost)
     if (!window.isSecureContext) {
       callbacks?.onUnavailable?.();
       const error: GeolocationError = { code: 0, message: "Требуется HTTPS или localhost" };
@@ -90,7 +95,6 @@ export function getGeolocation(
       return;
     }
 
-    // 3. Запрос позиции
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const result: GeolocationResult = {
@@ -99,35 +103,28 @@ export function getGeolocation(
           accuracy: pos.coords.accuracy,
           timestamp: pos.timestamp,
         };
-
         try {
-          if (callbacks?.onSuccess) {
-            await callbacks.onSuccess(result);
-          }
+          if (callbacks?.onSuccess) await callbacks.onSuccess(result);
           resolve();
-        } catch (e) {
-          reject(e);
-        }
+        } catch (e) { reject(e); }
       },
       (err) => {
         const error: GeolocationError = { code: err.code, message: "" };
-
         switch (err.code) {
-          case 1: // PERMISSION_DENIED
+          case 1:
             error.message = "Доступ к геолокации запрещён";
             callbacks?.onDenied?.();
             break;
-          case 2: // POSITION_UNAVAILABLE
+          case 2:
             error.message = "Местоположение недоступно";
             break;
-          case 3: // TIMEOUT
+          case 3:
             error.message = "Таймаут геолокации";
             callbacks?.onTimeout?.();
             break;
           default:
             error.message = "Неизвестная ошибка геолокации";
         }
-
         callbacks?.onError?.(error);
         reject(error);
       },
