@@ -2,12 +2,12 @@ import { useEffect, useRef } from "react";
 import { tourService } from "../../../shared/services/tourService";
 import useAuth from "../../../store/useAuth";
 import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
-import { nativeBridge } from "../../../shared/services/nativeBridge";
+import { getGeolocation } from "../../../shared/utils/getGeolocation";
 
 /**
  * Компонент для фонового обновления местоположения во время активного тура.
- * В WebView получает координаты через JS-мост.
- * В браузере — через navigator.geolocation.
+ * Отправляет координаты на бэкенд каждые 30 секунд.
+ * Работает ТОЛЬКО для туристов (tourist/user) с активной ролью.
  */
 export default function TourLocationUpdater() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -15,45 +15,23 @@ export default function TourLocationUpdater() {
   const userRole = useAuth((state) => state.userRole);
 
   const isTourist = userRole === ProfileRoles.TOURIST || userRole === ProfileRoles.USER;
-  const isNative = nativeBridge.isNativeApp();
 
   useEffect(() => {
     if (!userId || !isTourist) return;
 
-    // ── Нативный WebView ──
-    if (isNative) {
-      nativeBridge.requestCurrentLocation();
-
-      const unsub = nativeBridge.onLocationUpdate((data) => {
-        tourService.updateLocation({ latitude: data.latitude, longitude: data.longitude }).catch(() => {});
-      });
-
-      intervalRef.current = setInterval(() => {
-        nativeBridge.requestCurrentLocation();
-      }, 30000);
-
-      return () => {
-        unsub();
-        if (intervalRef.current) clearInterval(intervalRef.current);
-      };
-    }
-
-    // ── Браузер ──
     const updateLocation = async () => {
       try {
-        if (!navigator.geolocation) return;
-        const position = await new Promise<GeolocationPosition>(
-          (resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0,
-            });
-          }
+        await getGeolocation(
+          {
+            onSuccess: async (result) => {
+              await tourService.updateLocation({
+                latitude: result.latitude,
+                longitude: result.longitude,
+              });
+            },
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        await tourService.updateLocation({ latitude, longitude });
       } catch (error) {
         console.warn("Failed to update tour location:", error);
       }
@@ -63,9 +41,11 @@ export default function TourLocationUpdater() {
     intervalRef.current = setInterval(updateLocation, 30000);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
-  }, [userId, isTourist, isNative]);
+  }, [userId, isTourist]);
 
   return null;
 }

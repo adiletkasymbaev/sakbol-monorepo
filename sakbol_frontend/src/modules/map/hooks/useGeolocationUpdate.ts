@@ -7,7 +7,6 @@ import {
   getGeolocation 
 } from "../../../shared/utils/getGeolocation";
 import { useLocation } from "../../../store/useLocation";
-import { nativeBridge } from "../../../shared/services/nativeBridge";
 
 export function useGeolocationUpdate() {
   const setGeoLocation = useLocation((s) => s.setGeoLocation);
@@ -22,10 +21,7 @@ export function useGeolocationUpdate() {
             onSuccess: async (result) => {
               setGeoLocation(result.latitude, result.longitude);
               setDisplayLocation(result.latitude, result.longitude);
-              // В нативном WebView nativeService уже отправляет локацию на бэкенд
-              if (!nativeBridge.isNativeApp()) {
-                await updateMyLocation(result.latitude, result.longitude);
-              }
+              await updateMyLocation(result.latitude, result.longitude);
               
               resolve({ success: true, data: result });
             },

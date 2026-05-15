@@ -33,6 +33,8 @@ class MainActivity : Activity() {
     private lateinit var locationRequest: LocationRequest
     private var locationCallback: LocationCallback? = null
     private lateinit var webAppInterface: WebAppInterface
+    private var isLocationRunning = false
+    private var isDestroyed = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,7 +42,6 @@ class MainActivity : Activity() {
         webView = WebView(this)
         setContentView(webView)
 
-        // Создаем JavaScript Interface
         webAppInterface = WebAppInterface(this, webView)
 
         with(webView.settings) {
@@ -52,20 +53,18 @@ class MainActivity : Activity() {
             userAgentString = "$userAgentString AppWebView/sakbol"
         }
 
-        // Добавляем JavaScript Interface
         webView.addJavascriptInterface(webAppInterface, "SakbolNative")
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                // Сообщаем фронтенду что нативный код готов
+                if (isDestroyed) return
                 webView.post {
+                    if (isDestroyed) return@post
                     webView.evaluateJavascript(
                         "window.SakbolNativeReady && window.SakbolNativeReady()", null
                     )
                 }
-                // Сразу шлём текущую локацию во фронтенд
-                getCurrentLocationAndSend()
             }
         }
         webView.webChromeClient = object : WebChromeClient() {}
@@ -85,11 +84,11 @@ class MainActivity : Activity() {
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
+                if (isDestroyed) return
                 val loc = result.lastLocation ?: return
                 val lat = loc.latitude
                 val lon = loc.longitude
                 
-                // Отправляем координаты во фронтенд
                 val locationData = JSONObject().apply {
                     put("latitude", lat)
                     put("longitude", lon)
@@ -97,6 +96,7 @@ class MainActivity : Activity() {
                 }
                 
                 webView.post {
+                    if (isDestroyed) return@post
                     webView.evaluateJavascript(
                         "window.onNativeLocationUpdate && window.onNativeLocationUpdate(${locationData.toString()})", null
                     )
@@ -104,7 +104,6 @@ class MainActivity : Activity() {
             }
         }
 
-        // Разрешения: сначала для микрофона (Vosk), затем для геолокации
         requestMicPermsThenStartService()
         ensureLocationPermsAndStart()
     }
@@ -170,15 +169,17 @@ class MainActivity : Activity() {
     }
 
     fun startLocation() {
-        if (!::fused.isInitialized || locationCallback == null) return
+        if (!::fused.isInitialized || locationCallback == null || isLocationRunning) return
         try {
             fused.requestLocationUpdates(
                 locationRequest,
                 locationCallback as LocationCallback,
                 mainLooper
             )
-            // Сообщаем фронтенду что геолокация активна
+            isLocationRunning = true
+            if (isDestroyed) return
             webView.post {
+                if (isDestroyed) return@post
                 webView.evaluateJavascript(
                     "window.onLocationStatusChange && window.onLocationStatusChange(true)", null
                 )
@@ -190,29 +191,32 @@ class MainActivity : Activity() {
 
     /**
      * Получить текущую локацию однократно и сразу отправить во фронтенд.
-     * Вызывается из WebAppInterface.requestCurrentLocation()
+     * Безопасен к многократным вызовам — не запускает обновления, а делает разовый запрос.
      */
     @SuppressLint("MissingPermission")
     fun getCurrentLocationAndSend() {
-        if (!::fused.isInitialized) return
+        if (!::fused.isInitialized || isDestroyed) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+            && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.w("LOCATION", "getCurrentLocationAndSend: no location permissions")
+            return
+        }
         try {
             fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                 .addOnSuccessListener { loc ->
-                    if (loc != null) {
-                        val locationData = JSONObject().apply {
-                            put("latitude", loc.latitude)
-                            put("longitude", loc.longitude)
-                            put("timestamp", System.currentTimeMillis())
-                        }
-                        webView.post {
-                            webView.evaluateJavascript(
-                                "window.onNativeLocationUpdate && window.onNativeLocationUpdate(${locationData.toString()})", null
-                            )
-                        }
-                        Log.d("LOCATION", "Sent current location: ${loc.latitude}, ${loc.longitude}")
-                    } else {
-                        Log.w("LOCATION", "getCurrentLocation returned null")
+                    if (isDestroyed || loc == null) return@addOnSuccessListener
+                    val locationData = JSONObject().apply {
+                        put("latitude", loc.latitude)
+                        put("longitude", loc.longitude)
+                        put("timestamp", System.currentTimeMillis())
                     }
+                    webView.post {
+                        if (isDestroyed) return@post
+                        webView.evaluateJavascript(
+                            "window.onNativeLocationUpdate && window.onNativeLocationUpdate(${locationData.toString()})", null
+                        )
+                    }
+                    Log.d("LOCATION", "Sent current location: ${loc.latitude}, ${loc.longitude}")
                 }
                 .addOnFailureListener { e ->
                     Log.e("LOCATION", "getCurrentLocation failed", e)
@@ -223,10 +227,14 @@ class MainActivity : Activity() {
     }
 
     fun stopLocation() {
-        if (!::fused.isInitialized || locationCallback == null) return
-        fused.removeLocationUpdates(locationCallback as LocationCallback)
-        // Сообщаем фронтенду что геолокация остановлена
+        if (!::fused.isInitialized || locationCallback == null || !isLocationRunning) return
+        try {
+            fused.removeLocationUpdates(locationCallback as LocationCallback)
+        } catch (_: Exception) {}
+        isLocationRunning = false
+        if (isDestroyed) return
         webView.post {
+            if (isDestroyed) return@post
             webView.evaluateJavascript(
                 "window.onLocationStatusChange && window.onLocationStatusChange(false)", null
             )
@@ -272,6 +280,7 @@ class MainActivity : Activity() {
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (isDestroyed) return
 
         when (requestCode) {
             REQ_PERMS -> {
@@ -282,12 +291,12 @@ class MainActivity : Activity() {
                         .any { (p, r) -> p == Manifest.permission.POST_NOTIFICATIONS && r == PackageManager.PERMISSION_GRANTED }
                 } else true
 
-                // Сообщаем фронтенду о результатах
                 val result = JSONObject().apply {
                     put("microphone", micGranted)
                     put("notifications", notifGranted)
                 }
                 webView.post {
+                    if (isDestroyed) return@post
                     webView.evaluateJavascript(
                         "window.onPermissionsResult && window.onPermissionsResult(${result.toString()})", null
                     )
@@ -303,12 +312,12 @@ class MainActivity : Activity() {
                 val coarseGranted = permissions.zip(grantResults.toList())
                     .any { (p, r) -> p == Manifest.permission.ACCESS_COARSE_LOCATION && r == PackageManager.PERMISSION_GRANTED }
 
-                // Сообщаем фронтенду о результатах
                 val result = JSONObject().apply {
                     put("fineLocation", fineGranted)
                     put("coarseLocation", coarseGranted)
                 }
                 webView.post {
+                    if (isDestroyed) return@post
                     webView.evaluateJavascript(
                         "window.onLocationPermissionResult && window.onLocationPermissionResult(${result.toString()})", null
                     )
@@ -316,6 +325,8 @@ class MainActivity : Activity() {
 
                 if (fineGranted || coarseGranted) {
                     startLocation()
+                    // Сразу шлём текущую локацию во фронтенд
+                    getCurrentLocationAndSend()
                 }
             }
         }
@@ -327,6 +338,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        isDestroyed = true
         stopLocation()
         (webView.parent as? android.view.ViewGroup)?.removeView(webView)
         webView.destroy()

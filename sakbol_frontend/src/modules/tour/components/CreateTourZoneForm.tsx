@@ -9,8 +9,7 @@ import "leaflet/dist/leaflet.css";
 import { createTourZoneSchema, type CreateTourZoneFormType } from "../utils/schemas";
 import { FormInput } from "../../../shared/components/FormInput";
 import useTour from "../../../store/useTour";
-import { nativeBridge } from "../../../shared/services/nativeBridge";
-import { nativeService } from "../../../shared/services/nativeService";
+import { getGeolocation } from "../../../shared/utils/getGeolocation";
 
 interface CreateTourZoneFormProps {
   groupId: string;
@@ -80,82 +79,38 @@ export default function CreateTourZoneForm({ groupId, onSuccess, onCancel }: Cre
   };
 
   const handleGetUserLocation = async () => {
-    // Приоритет нативной геолокации из WebView
-    if (nativeBridge.isNativeApp()) {
-      addToast({
-        title: "Геолокация",
-        description: "Получаем местоположение из приложения...",
-        color: "primary",
-      });
-
-      try {
-        const data = await nativeService.requestCurrentLocation(15000);
-        const pos: [number, number] = [data.latitude, data.longitude];
-        setUserPosition(pos);
-        if (mapRef.current) {
-          mapRef.current.flyTo(pos, 15);
-        }
-        addToast({
-          title: ToastTypes.OK,
-          description: "Местоположение получено из приложения",
-          color: "success",
-        });
-      } catch {
-        addToast({
-          title: ToastTypes.ERR,
-          description: "Не удалось получить местоположение из приложения",
-          color: "danger",
-        });
-      }
-      return;
-    }
-
-    if (!navigator.geolocation) {
-      addToast({
-        title: ToastTypes.ERR,
-        description: "Геолокация не поддерживается вашим браузером",
-        color: "danger",
-      });
-      return;
-    }
-
     addToast({
       title: "Геолокация",
       description: "Определяем ваше местоположение...",
       color: "primary",
     });
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const pos: [number, number] = [latitude, longitude];
-        setUserPosition(pos);
-
-        // Центрируем карту на позиции пользователя
-        if (mapRef.current) {
-          mapRef.current.flyTo(pos, 15);
-        }
-
-        addToast({
-          title: ToastTypes.OK,
-          description: "Местоположение найдено",
-          color: "success",
-        });
-      },
-      (error) => {
-        console.error("Ошибка получения геолокации:", error);
-        addToast({
-          title: ToastTypes.ERR,
-          description: "Не удалось получить местоположение. Разрешите доступ к геолокации в настройках браузера.",
-          color: "danger",
-        });
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+    try {
+      await getGeolocation(
+        {
+          onSuccess: (result) => {
+            const pos: [number, number] = [result.latitude, result.longitude];
+            setUserPosition(pos);
+            if (mapRef.current) {
+              mapRef.current.flyTo(pos, 15);
+            }
+            addToast({
+              title: ToastTypes.OK,
+              description: "Местоположение найдено",
+              color: "success",
+            });
+          },
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } catch (error) {
+      console.error("Ошибка получения геолокации:", error);
+      addToast({
+        title: ToastTypes.ERR,
+        description: "Не удалось получить местоположение. Разрешите доступ к геолокации.",
+        color: "danger",
+      });
+    }
   };
 
   const onSubmit = async (data: CreateTourZoneFormType) => {

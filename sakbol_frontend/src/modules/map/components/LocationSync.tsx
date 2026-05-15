@@ -3,7 +3,7 @@ import { addToast } from "@heroui/react";
 import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import { useLocation } from "../../../store/useLocation";
 import { tourService } from "../../../shared/services/tourService";
-import { nativeBridge } from "../../../shared/services/nativeBridge";
+import { getGeolocation } from "../../../shared/utils/getGeolocation";
 
 type LocationSyncProps = {
   intervalMs?: number;
@@ -36,35 +36,11 @@ function explainGeoError(e: any) {
     : "Ошибка получения местоположения";
 }
 
-async function getGeoOnce(options?: PositionOptions): Promise<GeolocationPosition> {
-  if (!window.isSecureContext) {
-    throw new Error("Insecure context");
-  }
-
-  if (!("geolocation" in navigator) || !navigator.geolocation) {
-    throw new Error("Геолокация не поддерживается");
-  }
-
-  try {
-    const perm = await (navigator as any).permissions?.query?.({ name: "geolocation" });
-    if (perm?.state === "denied") {
-      const err: any = new Error("Permission denied");
-      err.code = 1;
-      throw err;
-    }
-  } catch {
-    // permissions API может быть недоступен — ок
-  }
-
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, options);
-  });
-}
-
 export default function LocationSync({
   intervalMs = 30_000,
   enableContactsFetch = true,
   enableMyLocationUpdate = true,
+  // для ПК safer defaults: highAccuracy часто мешает, timeout лучше больше
   geolocationOptions = {
     enableHighAccuracy: false,
     timeout: 20_000,
@@ -78,8 +54,8 @@ export default function LocationSync({
   const isTickRunningRef = useRef(false);
   const isStoppedRef = useRef(false);
   const timerIdRef = useRef<number | null>(null);
-  const isNativeRef = useRef(nativeBridge.isNativeApp());
 
+  // стабилизируем options, чтобы useEffect не пересоздавался из-за нового объекта
   const stableGeoOptions = useMemo(
     () => geolocationOptions,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,24 +66,6 @@ export default function LocationSync({
     ]
   );
 
-  // ── Нативный WebView: push-обновления от Android ──
-  useEffect(() => {
-    if (!enableMyLocationUpdate) return;
-    if (!isNativeRef.current) return;
-
-    // Запрашиваем текущую локацию сразу
-    nativeBridge.requestCurrentLocation();
-
-    const unsub = nativeBridge.onLocationUpdate((data) => {
-      setGeoLocation(data.latitude, data.longitude);
-      // nativeService уже отправляет на /general/locations_module/update/
-      tourService.updateLocation({ latitude: data.latitude, longitude: data.longitude }).catch(() => {});
-    });
-
-    return unsub;
-  }, [enableMyLocationUpdate, setGeoLocation]);
-
-  // ── Браузер: polling геолокации + контакты ──
   useEffect(() => {
     let isMounted = true;
 
@@ -127,24 +85,46 @@ export default function LocationSync({
       isTickRunningRef.current = true;
 
       try {
-        if (enableMyLocationUpdate && !isNativeRef.current) {
-          const pos = await getGeoOnce(stableGeoOptions);
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-
-          setGeoLocation(lat, lon);
-          await updateMyLocation(lat, lon);
-          try {
-            await tourService.updateLocation({ latitude: lat, longitude: lon });
-          } catch {
-            // Silently ignore — user may not be in a tour group
-          }
+        if (enableMyLocationUpdate) {
+          await getGeolocation(
+            {
+              onSuccess: async (result) => {
+                setGeoLocation(result.latitude, result.longitude);
+                await updateMyLocation(result.latitude, result.longitude);
+                try {
+                  await tourService.updateLocation({
+                    latitude: result.latitude,
+                    longitude: result.longitude,
+                  });
+                } catch {
+                  // Silently ignore — user may not be in a tour group
+                }
+              },
+              onError: (error) => {
+                console.warn("LocationSync geo error:", error);
+                if (error.code === 1) {
+                  const msg = explainGeoError(error);
+                  addToast({
+                    title: ToastTypes.ERR,
+                    description: msg,
+                    color: "danger",
+                  });
+                  stopTicks();
+                }
+              },
+            },
+            stableGeoOptions
+          );
         }
       } catch (e: any) {
         console.warn("LocationSync geo error:", e);
         const msg = explainGeoError(e);
         if (e?.code === 1) {
-          addToast({ title: ToastTypes.ERR, description: msg, color: "danger" });
+          addToast({
+            title: ToastTypes.ERR,
+            description: msg,
+            color: "danger",
+          });
           stopTicks();
         }
       }
