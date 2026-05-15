@@ -119,10 +119,10 @@ class MainActivity : Activity() {
         stopLocation()
     }
 
-    private fun hasMicPerm(): Boolean =
+    internal fun hasMicPerm(): Boolean =
         ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
-    private fun hasPostNotifPerm(): Boolean =
+    internal fun hasPostNotifPerm(): Boolean =
         if (Build.VERSION.SDK_INT >= 33)
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         else true
