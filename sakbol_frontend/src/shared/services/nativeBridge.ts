@@ -65,6 +65,8 @@ class NativeBridge {
     onWarning: Array<(data: WarningData) => void>;
     onPermissionsResult: Array<(data: PermissionsResult) => void>;
     onLocationPermissionResult: Array<(data: LocationPermissionResult) => void>;
+    onVoicePartial: Array<(text: string) => void>;
+    onVoiceResult: Array<(text: string) => void>;
   } = {
     onLocationUpdate: [],
     onLocationStatusChange: [],
@@ -72,6 +74,8 @@ class NativeBridge {
     onWarning: [],
     onPermissionsResult: [],
     onLocationPermissionResult: [],
+    onVoicePartial: [],
+    onVoiceResult: [],
   };
 
   private _isNative: boolean | null = null;
@@ -80,12 +84,9 @@ class NativeBridge {
     this.setupGlobalHandlers();
     this.setupReadyHandler();
     this._isNative = this.detectNative();
+    console.log('[NativeBridge] constructor, isNative=' + this._isNative);
   }
 
-  /**
-   * Определяет, запущено ли приложение в нативном WebView.
-   * Результат кешируется, но можно сбросить через refreshIsNative().
-   */
   isNativeApp(): boolean {
     if (this._isNative !== null) return this._isNative;
     this._isNative = this.detectNative();
@@ -94,40 +95,37 @@ class NativeBridge {
 
   refreshIsNative(): void {
     this._isNative = this.detectNative();
+    console.log('[NativeBridge] refreshIsNative=' + this._isNative);
   }
 
   private detectNative(): boolean {
     if (typeof window === 'undefined') return false;
     if (window.SakbolNative !== undefined && typeof window.SakbolNative === 'object') {
+      console.log('[NativeBridge] detectNative: SakbolNative found');
       return true;
     }
     if (typeof navigator !== 'undefined' && navigator.userAgent?.includes('AppWebView/sakbol')) {
+      console.log('[NativeBridge] detectNative: UA match');
       return true;
     }
     return false;
   }
 
-  /**
-   * Обработчик сигнала готовности нативного кода от MainActivity
-   */
   private setupReadyHandler() {
     if (typeof window === 'undefined') return;
     const existing = window.SakbolNativeReady;
     window.SakbolNativeReady = () => {
-      console.log('[NativeBridge] Native side reported ready');
+      console.log('[NativeBridge] SakbolNativeReady() called from Android');
       this.refreshIsNative();
       existing?.();
     };
   }
 
-  /**
-   * Настраивает глобальные обработчики для событий от нативного кода.
-   * Каждый handler пробегается по ВСЕМ подписчикам.
-   */
   private setupGlobalHandlers() {
     if (typeof window === 'undefined') return;
 
     window.onNativeLocationUpdate = (data: LocationData) => {
+      console.log('[NativeBridge] onNativeLocationUpdate:', data);
       if (typeof window !== 'undefined') {
         window.__lastNativeLocation = data;
       }
@@ -137,40 +135,56 @@ class NativeBridge {
     };
 
     window.onLocationStatusChange = (active: boolean) => {
+      console.log('[NativeBridge] onLocationStatusChange:', active);
       this.listeners.onLocationStatusChange.forEach((cb) => {
         try { cb(active); } catch (e) { console.error(e); }
       });
     };
 
     window.onNativeSOS = (data: SOSData) => {
+      console.log('[NativeBridge] onNativeSOS:', data);
       this.listeners.onSOS.forEach((cb) => {
         try { cb(data); } catch (e) { console.error(e); }
       });
     };
 
     window.onNativeWarning = (data: WarningData) => {
+      console.log('[NativeBridge] onNativeWarning:', data);
       this.listeners.onWarning.forEach((cb) => {
         try { cb(data); } catch (e) { console.error(e); }
       });
     };
 
     window.onPermissionsResult = (data: PermissionsResult) => {
+      console.log('[NativeBridge] onPermissionsResult:', data);
       this.listeners.onPermissionsResult.forEach((cb) => {
         try { cb(data); } catch (e) { console.error(e); }
       });
     };
 
     window.onLocationPermissionResult = (data: LocationPermissionResult) => {
+      console.log('[NativeBridge] onLocationPermissionResult:', data);
       this.listeners.onLocationPermissionResult.forEach((cb) => {
         try { cb(data); } catch (e) { console.error(e); }
       });
     };
+
+    // Голосовой ввод (для отладки)
+    (window as any).onNativePartialResult = (data: { partial: string }) => {
+      console.log('[NativeBridge] onNativePartialResult:', data.partial);
+      this.listeners.onVoicePartial.forEach((cb) => {
+        try { cb(data.partial); } catch (e) { console.error(e); }
+      });
+    };
+
+    (window as any).onNativeResult = (data: { text: string }) => {
+      console.log('[NativeBridge] onNativeResult:', data.text);
+      this.listeners.onVoiceResult.forEach((cb) => {
+        try { cb(data.text); } catch (e) { console.error(e); }
+      });
+    };
   }
 
-  /**
-   * Подписаться на обновление геолокации.
-   * Возвращает функцию отписки.
-   */
   onLocationUpdate(callback: (data: LocationData) => void): () => void {
     this.listeners.onLocationUpdate.push(callback);
     return () => {
@@ -219,26 +233,42 @@ class NativeBridge {
     };
   }
 
-  /**
-   * Ждёт получение локации от нативного кода (с таймаутом).
-   * НЕ ломает других подписчиков.
-   */
+  onVoicePartial(callback: (text: string) => void): () => void {
+    this.listeners.onVoicePartial.push(callback);
+    return () => {
+      const idx = this.listeners.onVoicePartial.indexOf(callback);
+      if (idx >= 0) this.listeners.onVoicePartial.splice(idx, 1);
+    };
+  }
+
+  onVoiceResult(callback: (text: string) => void): () => void {
+    this.listeners.onVoiceResult.push(callback);
+    return () => {
+      const idx = this.listeners.onVoiceResult.indexOf(callback);
+      if (idx >= 0) this.listeners.onVoiceResult.splice(idx, 1);
+    };
+  }
+
   waitForLocation(timeoutMs = 10_000): Promise<LocationData> {
+    console.log('[NativeBridge] waitForLocation start, timeout=' + timeoutMs);
     return new Promise((resolve, reject) => {
       const cached = typeof window !== 'undefined' ? window.__lastNativeLocation : undefined;
       if (cached) {
+        console.log('[NativeBridge] waitForLocation: using cached', cached);
         resolve(cached);
         return;
       }
 
       const timer = setTimeout(() => {
         unsubscribe();
+        console.warn('[NativeBridge] waitForLocation TIMEOUT');
         reject(new Error('Timeout waiting for native location'));
       }, timeoutMs);
 
       const handler = (data: LocationData) => {
         clearTimeout(timer);
         unsubscribe();
+        console.log('[NativeBridge] waitForLocation resolved:', data);
         resolve(data);
       };
 
@@ -247,14 +277,20 @@ class NativeBridge {
   }
 
   requestNotificationPermission(): void {
+    console.log('[NativeBridge] requestNotificationPermission');
     if (this.isNativeApp() && window.SakbolNative) {
       window.SakbolNative.requestNotificationPermission();
+    } else {
+      console.warn('[NativeBridge] requestNotificationPermission: not native');
     }
   }
 
   requestLocationPermission(): void {
+    console.log('[NativeBridge] requestLocationPermission');
     if (this.isNativeApp() && window.SakbolNative) {
       window.SakbolNative.requestLocationPermission();
+    } else {
+      console.warn('[NativeBridge] requestLocationPermission: not native');
     }
   }
 
@@ -296,8 +332,11 @@ class NativeBridge {
   }
 
   requestCurrentLocation(): void {
+    console.log('[NativeBridge] requestCurrentLocation');
     if (this.isNativeApp() && window.SakbolNative) {
       window.SakbolNative.requestCurrentLocation();
+    } else {
+      console.warn('[NativeBridge] requestCurrentLocation: not native');
     }
   }
 }

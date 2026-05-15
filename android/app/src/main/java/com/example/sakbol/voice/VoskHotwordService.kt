@@ -239,7 +239,17 @@ class VoskHotwordService : Service(), RecognitionListener {
         if (paused) return
         val word = runCatching { JSONObject(hypothesis ?: "").optString("partial") }
             .getOrDefault("").lowercase().trim()
-        if (word.isNotEmpty()) Log.d(TAG, "partial=$word")
+        if (word.isNotEmpty()) {
+            Log.d(TAG, "[VOICE] partial='$word'")
+            // Лог для JS bridge
+            Log.d(TAG, "[VOICE] Sending partial to JS: window.onNativePartialResult")
+            webViewRef?.get()?.let { wv ->
+                val payload = JSONObject().apply { put("partial", word) }
+                wv.post {
+                    wv.evaluateJavascript("window.onNativePartialResult && window.onNativePartialResult(${payload.toString()})", null)
+                }
+            }
+        }
         checkTrigger(word)
     }
 
@@ -247,7 +257,15 @@ class VoskHotwordService : Service(), RecognitionListener {
         if (paused) return
         val text = runCatching { JSONObject(hypothesis ?: "").optString("text") }
             .getOrDefault("").lowercase().trim()
-        Log.d(TAG, "final=$text")
+        Log.d(TAG, "[VOICE] final='$text'")
+        if (text.isNotEmpty()) {
+            webViewRef?.get()?.let { wv ->
+                val payload = JSONObject().apply { put("text", text) }
+                wv.post {
+                    wv.evaluateJavascript("window.onNativeResult && window.onNativeResult(${payload.toString()})", null)
+                }
+            }
+        }
         checkTrigger(text)
     }
 
@@ -255,11 +273,11 @@ class VoskHotwordService : Service(), RecognitionListener {
         Log.d(TAG, "finalResult=$hypothesis")
     }
 
-    override fun onError(e: Exception?) { Log.e(TAG, "onError", e) }
+    override fun onError(e: Exception?) { Log.e(TAG, "[VOICE] onError", e) }
 
     override fun onTimeout() {
         if (!paused) {
-            Log.w(TAG, "onTimeout -> restart listening")
+            Log.w(TAG, "[VOICE] onTimeout -> restart listening")
             runCatching { speechService?.startListening(this) }
         }
     }
@@ -369,9 +387,8 @@ class VoskHotwordService : Service(), RecognitionListener {
      * Фронтенд сам отправляет запрос на бэкенд
      */
     private fun sendImmediateSOS(service: String, words: List<String>, timestamp: Long) {
-        Log.i(TAG, "IMMEDIATE SOS -> service=$service words=$words")
+        Log.i(TAG, "[SOS] IMMEDIATE SOS -> service=$service words=$words")
         
-        // Отправляем во фронтенд через MainActivity/WebAppInterface
         mainActivityRef?.get()?.let { activity ->
             activity.runOnUiThread {
                 val webView = webViewRef?.get()
@@ -384,18 +401,21 @@ class VoskHotwordService : Service(), RecognitionListener {
                         put("priority", "immediate")
                         put("source", "voice_recognition")
                     }
-                    wv.evaluateJavascript(
-                        "window.onNativeSOS && window.onNativeSOS(${payload.toString()})", null
-                    )
+                    val js = "window.onNativeSOS && window.onNativeSOS(${payload.toString()})"
+                    Log.d(TAG, "[SOS] JS eval: $js")
+                    wv.evaluateJavascript(js, null)
+                    Log.i(TAG, "[SOS] Sent to JS successfully")
+                } ?: run {
+                    Log.e(TAG, "[SOS] webViewRef.get() is null!")
                 }
             }
         } ?: run {
-            Log.w(TAG, "Cannot send SOS - MainActivity reference is null")
+            Log.w(TAG, "[SOS] Cannot send SOS - MainActivity reference is null")
         }
     }
 
     private fun sendWarningToWeb(word: String, timestamp: Long) {
-        Log.i(TAG, "WARNING detected -> JS: $word")
+        Log.i(TAG, "[WARN] WARNING detected -> JS: $word")
         
         mainActivityRef?.get()?.let { activity ->
             activity.runOnUiThread {
@@ -407,16 +427,21 @@ class VoskHotwordService : Service(), RecognitionListener {
                         put("timestamp", timestamp)
                         put("source", "voice_recognition")
                     }
-                    wv.evaluateJavascript(
-                        "window.onNativeWarning && window.onNativeWarning(${payload.toString()})", null
-                    )
+                    val js = "window.onNativeWarning && window.onNativeWarning(${payload.toString()})"
+                    Log.d(TAG, "[WARN] JS eval: $js")
+                    wv.evaluateJavascript(js, null)
+                    Log.i(TAG, "[WARN] Sent to JS successfully")
+                } ?: run {
+                    Log.e(TAG, "[WARN] webViewRef.get() is null!")
                 }
             }
+        } ?: run {
+            Log.w(TAG, "[WARN] Cannot send warning - MainActivity reference is null")
         }
     }
 
     private fun onEmergencyDetected(group: String, words: List<String>, timestamp: Long) {
-        Log.i(TAG, "EMERGENCY detected -> group=$group words=$words")
+        Log.i(TAG, "[SOS] EMERGENCY detected -> group=$group words=$words")
         
         val serviceName = when (group) {
             "ambulance" -> "ambulance"
@@ -425,7 +450,6 @@ class VoskHotwordService : Service(), RecognitionListener {
             else -> "unknown"
         }
         
-        // Отправляем во фронтенд
         mainActivityRef?.get()?.let { activity ->
             activity.runOnUiThread {
                 val webView = webViewRef?.get()
@@ -438,11 +462,16 @@ class VoskHotwordService : Service(), RecognitionListener {
                         put("priority", "high")
                         put("source", "voice_recognition")
                     }
-                    wv.evaluateJavascript(
-                        "window.onNativeSOS && window.onNativeSOS(${payload.toString()})", null
-                    )
+                    val js = "window.onNativeSOS && window.onNativeSOS(${payload.toString()})"
+                    Log.d(TAG, "[SOS] JS eval: $js")
+                    wv.evaluateJavascript(js, null)
+                    Log.i(TAG, "[SOS] Emergency sent to JS successfully")
+                } ?: run {
+                    Log.e(TAG, "[SOS] Emergency: webViewRef.get() is null!")
                 }
             }
+        } ?: run {
+            Log.w(TAG, "[SOS] Cannot send emergency - MainActivity reference is null")
         }
     }
 }

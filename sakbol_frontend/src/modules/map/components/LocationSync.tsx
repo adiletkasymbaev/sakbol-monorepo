@@ -3,6 +3,7 @@ import { addToast } from "@heroui/react";
 import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import { useLocation } from "../../../store/useLocation";
 import { tourService } from "../../../shared/services/tourService";
+import { nativeBridge } from "../../../shared/services/nativeBridge";
 import { getGeolocation } from "../../../shared/utils/getGeolocation";
 
 type LocationSyncProps = {
@@ -40,7 +41,6 @@ export default function LocationSync({
   intervalMs = 30_000,
   enableContactsFetch = true,
   enableMyLocationUpdate = true,
-  // для ПК safer defaults: highAccuracy часто мешает, timeout лучше больше
   geolocationOptions = {
     enableHighAccuracy: false,
     timeout: 20_000,
@@ -54,8 +54,8 @@ export default function LocationSync({
   const isTickRunningRef = useRef(false);
   const isStoppedRef = useRef(false);
   const timerIdRef = useRef<number | null>(null);
+  const isNativeRef = useRef(nativeBridge.isNativeApp());
 
-  // стабилизируем options, чтобы useEffect не пересоздавался из-за нового объекта
   const stableGeoOptions = useMemo(
     () => geolocationOptions,
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,7 +66,33 @@ export default function LocationSync({
     ]
   );
 
+  // ── Нативный WebView: push-обновления от Android (НЕ polling!) ──
   useEffect(() => {
+    if (!enableMyLocationUpdate) return;
+    if (!isNativeRef.current) return;
+
+    console.log('[LocationSync] WebView mode: subscribing to native location updates');
+
+    // Сразу просим Android прислать текущую локацию
+    nativeBridge.requestCurrentLocation();
+
+    const unsub = nativeBridge.onLocationUpdate((data) => {
+      console.log('[LocationSync] native location update:', data);
+      setGeoLocation(data.latitude, data.longitude);
+      updateMyLocation(data.latitude, data.longitude).catch(() => {});
+      tourService.updateLocation({ latitude: data.latitude, longitude: data.longitude }).catch(() => {});
+    });
+
+    return () => {
+      console.log('[LocationSync] WebView mode: unsubscribing');
+      unsub();
+    };
+  }, [enableMyLocationUpdate, setGeoLocation, updateMyLocation]);
+
+  // ── Браузер: polling геолокации + контакты ──
+  useEffect(() => {
+    if (isNativeRef.current) return; // В WebView polling не нужен
+
     let isMounted = true;
 
     const stopTicks = () => {
@@ -97,7 +123,7 @@ export default function LocationSync({
                     longitude: result.longitude,
                   });
                 } catch {
-                  // Silently ignore — user may not be in a tour group
+                  // Silently ignore
                 }
               },
               onError: (error) => {

@@ -39,6 +39,7 @@ class MainActivity : Activity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("SAKBOL", "=== onCreate ===")
         webView = WebView(this)
         setContentView(webView)
 
@@ -54,17 +55,29 @@ class MainActivity : Activity() {
         }
 
         webView.addJavascriptInterface(webAppInterface, "SakbolNative")
+        Log.d("SAKBOL", "JS Interface SakbolNative added")
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                if (isDestroyed) return
+                Log.d("SAKBOL", "onPageFinished: $url")
+                if (isDestroyed) {
+                    Log.w("SAKBOL", "onPageFinished but isDestroyed=true")
+                    return
+                }
                 webView.post {
-                    if (isDestroyed) return@post
+                    if (isDestroyed) {
+                        Log.w("SAKBOL", "post skipped: isDestroyed")
+                        return@post
+                    }
                     webView.evaluateJavascript(
                         "window.SakbolNativeReady && window.SakbolNativeReady()", null
                     )
+                    Log.d("SAKBOL", "SakbolNativeReady() called")
                 }
+                // Сразу шлём текущую локацию во фронтенд
+                Log.d("SAKBOL", "onPageFinished -> calling getCurrentLocationAndSend()")
+                getCurrentLocationAndSend()
             }
         }
         webView.webChromeClient = object : WebChromeClient() {}
@@ -84,10 +97,17 @@ class MainActivity : Activity() {
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                if (isDestroyed) return
-                val loc = result.lastLocation ?: return
+                if (isDestroyed) {
+                    Log.w("SAKBOL", "locationCallback: isDestroyed, skipping")
+                    return
+                }
+                val loc = result.lastLocation ?: run {
+                    Log.w("SAKBOL", "locationCallback: lastLocation is null")
+                    return
+                }
                 val lat = loc.latitude
                 val lon = loc.longitude
+                Log.d("SAKBOL", "locationCallback: lat=$lat lon=$lon")
                 
                 val locationData = JSONObject().apply {
                     put("latitude", lat)
@@ -96,10 +116,14 @@ class MainActivity : Activity() {
                 }
                 
                 webView.post {
-                    if (isDestroyed) return@post
+                    if (isDestroyed) {
+                        Log.w("SAKBOL", "locationCallback post: isDestroyed")
+                        return@post
+                    }
                     webView.evaluateJavascript(
                         "window.onNativeLocationUpdate && window.onNativeLocationUpdate(${locationData.toString()})", null
                     )
+                    Log.d("SAKBOL", "Sent location to JS: $lat, $lon")
                 }
             }
         }
@@ -150,6 +174,7 @@ class MainActivity : Activity() {
     }
 
     fun ensureLocationPermsAndStart() {
+        Log.d("SAKBOL", "ensureLocationPermsAndStart called")
         val need = mutableListOf<String>()
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
@@ -162,14 +187,20 @@ class MainActivity : Activity() {
             need += Manifest.permission.ACCESS_COARSE_LOCATION
         }
         if (need.isNotEmpty()) {
+            Log.d("SAKBOL", "Requesting location permissions: $need")
             ActivityCompat.requestPermissions(this, need.toTypedArray(), REQ_LOC_PERMS)
         } else {
+            Log.d("SAKBOL", "Location permissions OK, starting location")
             startLocation()
         }
     }
 
     fun startLocation() {
-        if (!::fused.isInitialized || locationCallback == null || isLocationRunning) return
+        Log.d("SAKBOL", "startLocation called, isLocationRunning=$isLocationRunning")
+        if (!::fused.isInitialized || locationCallback == null || isLocationRunning) {
+            Log.w("SAKBOL", "startLocation skipped: fused=${::fused.isInitialized} callback=${locationCallback != null} running=$isLocationRunning")
+            return
+        }
         try {
             fused.requestLocationUpdates(
                 locationRequest,
@@ -177,7 +208,11 @@ class MainActivity : Activity() {
                 mainLooper
             )
             isLocationRunning = true
-            if (isDestroyed) return
+            Log.d("SAKBOL", "Location updates STARTED")
+            if (isDestroyed) {
+                Log.w("SAKBOL", "startLocation: isDestroyed after start")
+                return
+            }
             webView.post {
                 if (isDestroyed) return@post
                 webView.evaluateJavascript(
@@ -185,6 +220,7 @@ class MainActivity : Activity() {
                 )
             }
         } catch (e: SecurityException) {
+            Log.e("SAKBOL", "startLocation SecurityException", e)
             e.printStackTrace()
         }
     }
@@ -195,16 +231,23 @@ class MainActivity : Activity() {
      */
     @SuppressLint("MissingPermission")
     fun getCurrentLocationAndSend() {
-        if (!::fused.isInitialized || isDestroyed) return
+        Log.d("SAKBOL", "getCurrentLocationAndSend called")
+        if (!::fused.isInitialized || isDestroyed) {
+            Log.w("SAKBOL", "getCurrentLocationAndSend skipped: fused=${::fused.isInitialized} destroyed=$isDestroyed")
+            return
+        }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
             && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.w("LOCATION", "getCurrentLocationAndSend: no location permissions")
+            Log.w("SAKBOL", "getCurrentLocationAndSend: no location permissions")
             return
         }
         try {
             fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                 .addOnSuccessListener { loc ->
-                    if (isDestroyed || loc == null) return@addOnSuccessListener
+                    if (isDestroyed || loc == null) {
+                        Log.w("SAKBOL", "getCurrentLocation success but loc is null or destroyed")
+                        return@addOnSuccessListener
+                    }
                     val locationData = JSONObject().apply {
                         put("latitude", loc.latitude)
                         put("longitude", loc.longitude)
@@ -216,21 +259,29 @@ class MainActivity : Activity() {
                             "window.onNativeLocationUpdate && window.onNativeLocationUpdate(${locationData.toString()})", null
                         )
                     }
-                    Log.d("LOCATION", "Sent current location: ${loc.latitude}, ${loc.longitude}")
+                    Log.d("SAKBOL", "getCurrentLocationAndSend SUCCESS: ${loc.latitude}, ${loc.longitude}")
                 }
                 .addOnFailureListener { e ->
-                    Log.e("LOCATION", "getCurrentLocation failed", e)
+                    Log.e("SAKBOL", "getCurrentLocationAndSend FAILED", e)
                 }
         } catch (e: SecurityException) {
+            Log.e("SAKBOL", "getCurrentLocationAndSend SecurityException", e)
             e.printStackTrace()
         }
     }
 
     fun stopLocation() {
-        if (!::fused.isInitialized || locationCallback == null || !isLocationRunning) return
+        Log.d("SAKBOL", "stopLocation called, isLocationRunning=$isLocationRunning")
+        if (!::fused.isInitialized || locationCallback == null || !isLocationRunning) {
+            Log.w("SAKBOL", "stopLocation skipped: fused=${::fused.isInitialized} callback=${locationCallback != null} running=$isLocationRunning")
+            return
+        }
         try {
             fused.removeLocationUpdates(locationCallback as LocationCallback)
-        } catch (_: Exception) {}
+            Log.d("SAKBOL", "Location updates REMOVED")
+        } catch (e: Exception) {
+            Log.e("SAKBOL", "stopLocation exception", e)
+        }
         isLocationRunning = false
         if (isDestroyed) return
         webView.post {
@@ -338,10 +389,12 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        Log.d("SAKBOL", "=== onDestroy ===")
         isDestroyed = true
         stopLocation()
         (webView.parent as? android.view.ViewGroup)?.removeView(webView)
         webView.destroy()
         super.onDestroy()
+        Log.d("SAKBOL", "=== onDestroy DONE ===")
     }
 }
