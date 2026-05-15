@@ -75,9 +75,8 @@ class MainActivity : Activity() {
                     )
                     Log.d("SAKBOL", "SakbolNativeReady() called")
                 }
-                // Сразу шлём текущую локацию во фронтенд
-                Log.d("SAKBOL", "onPageFinished -> calling getCurrentLocationAndSend()")
-                getCurrentLocationAndSend()
+                // НЕ шлём локацию здесь — она придёт через locationCallback после startLocation()
+                Log.d("SAKBOL", "onPageFinished done")
             }
         }
         webView.webChromeClient = object : WebChromeClient() {}
@@ -298,7 +297,9 @@ class MainActivity : Activity() {
         val i = Intent(this, VoskHotwordService::class.java)
         // Не запускаем как foreground service пока уведомления не включены через фронтенд
         i.putExtra("startForeground", false)
-        ContextCompat.startForegroundService(this, i)
+        // Используем startService вместо startForegroundService, т.к. foreground notification отключен
+        startService(i)
+        Log.d("SAKBOL", "startHotwordService: started via startService (no foreground)")
     }
 
     fun enableVoiceNotifications() {
