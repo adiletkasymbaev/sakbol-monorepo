@@ -18,7 +18,7 @@ export default function RequireAuth() {
           const role = response.data.role;
           setUserRole(role);
           setProfileLoaded(true);
-          console.log("Profile loaded, role:", role);
+
         })
         .catch((error) => {
           console.error("Failed to load profile:", error);

@@ -53,16 +53,28 @@ export function useSosButton(options: Options = {}) {
       await getGeolocation(
         {
           onSuccess: async (result) => {
-            await alertsService.create({
-              latitude: result.latitude,
-              longitude: result.longitude,
-            });
+            try {
+              await alertsService.create({
+                latitude: result.latitude,
+                longitude: result.longitude,
+              });
 
-            addToast({
-              title: t('sos.button.label'),
-              description: t('sos.button.sentToContacts'),
-              color: "warning",
-            });
+              addToast({
+                title: t('sos.button.label'),
+                description: t('sos.button.sentToContacts'),
+                color: "warning",
+              });
+            } catch (apiErr: any) {
+              console.error('SOS API error:', apiErr);
+              const isNetwork = !apiErr.response;
+              addToast({
+                title: ToastTypes.ERR,
+                description: isNetwork
+                  ? `Нет соединения с сервером (${apiErr.message || apiErr.code})`
+                  : `Ошибка сервера: ${apiErr.response?.status}`,
+                color: "danger",
+              });
+            }
           },
           onError: (error) => {
             console.error(t('sos.errors.geolocationError'), error);
@@ -75,11 +87,14 @@ export function useSosButton(options: Options = {}) {
         },
         { enableHighAccuracy: true }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("Ошибка при отправке SOS:", err);
+      const isNetwork = err && !err.response && err.message !== t('sos.errors.geolocation');
       addToast({
         title: ToastTypes.ERR,
-        description: t('sos.errors.sendFailed'),
+        description: isNetwork
+          ? `Нет соединения: ${err.message || err.code}`
+          : t('sos.errors.sendFailed'),
         color: "danger",
       });
     }
@@ -90,19 +105,31 @@ export function useSosButton(options: Options = {}) {
       await getGeolocation(
         {
           onSuccess: async (result) => {
-            await alertsService.create({
-              latitude: result.latitude,
-              longitude: result.longitude,
-            });
+            try {
+              await alertsService.create({
+                latitude: result.latitude,
+                longitude: result.longitude,
+              });
 
-            addToast({
-              title: t('sos.button.label'),
-              description: t('sos.button.sentToContacts'),
-              color: "warning",
-            });
+              addToast({
+                title: t('sos.button.label'),
+                description: t('sos.button.sentToContacts'),
+                color: "warning",
+              });
 
-            setProgress(100);
-            window.setTimeout(() => setProgress(0), 300);
+              setProgress(100);
+              window.setTimeout(() => setProgress(0), 300);
+            } catch (apiErr: any) {
+              console.error('SOS API error:', apiErr);
+              const isNetwork = !apiErr.response;
+              addToast({
+                title: ToastTypes.ERR,
+                description: isNetwork
+                  ? `Нет соединения с сервером (${apiErr.message || apiErr.code})`
+                  : `Ошибка сервера: ${apiErr.response?.status}`,
+                color: "danger",
+              });
+            }
           },
           onError: (error) => {
             console.error(t('sos.errors.geolocationError'), error);
@@ -115,11 +142,14 @@ export function useSosButton(options: Options = {}) {
         },
         { enableHighAccuracy: true }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("Ошибка при отправке SOS regular:", err);
+      const isNetwork = err && !err.response;
       addToast({
         title: ToastTypes.ERR,
-        description: t('sos.errors.sendFailed'),
+        description: isNetwork
+          ? `Нет соединения: ${err.message || err.code}`
+          : t('sos.errors.sendFailed'),
         color: "danger",
       });
     }

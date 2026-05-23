@@ -44,7 +44,7 @@ export const setupAuthInterceptor = () => {
 
       // ВАЖНО: не добавляем Authorization на refresh endpoint
       const url = config.url ?? "";
-      if (url.includes("/auth/refresh")) {
+      if (url.includes("/accounts/refresh")) {
         delete (config.headers as any).Authorization;
         return config;
       }
@@ -68,6 +68,12 @@ export const setupAuthInterceptor = () => {
 
       const originalRequest = error.config as RetryConfig;
       const status = error.response?.status;
+
+      // Network error (no response from server)
+      if (!error.response) {
+        console.error('[API] Network error:', error.code, error.message);
+        return Promise.reject(error);
+      }
 
       // если не 401 — не трогаем
       if (status !== 401) return Promise.reject(error);
@@ -118,7 +124,7 @@ export const setupAuthInterceptor = () => {
 
       try {
         // refresh БЕЗ Authorization, БЕЗ интерсепторов
-        const res = await refreshApi.post("/auth/refresh/", { refresh });
+        const res = await refreshApi.post("/accounts/refresh/", { refresh });
 
         const newAccess = (res.data as any)?.access as string | undefined;
         const newRefresh = (res.data as any)?.refresh as string | undefined; // если rotation

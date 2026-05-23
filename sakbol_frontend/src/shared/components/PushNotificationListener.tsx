@@ -20,8 +20,6 @@ export default function PushNotificationListener() {
         duration: 5000,
       });
 
-      // Здесь можно добавить навигацию по данным из уведомления
-      console.log("Push notification data:", data);
     });
 
     return () => unsubscribe();

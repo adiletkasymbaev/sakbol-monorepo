@@ -15,7 +15,4 @@ export const authService = {
     return api.post<TokenResponse>(API_ENDPOINTS.AUTH.LOGIN, data);
   },
 
-  refresh: (refreshToken: string) => {
-    return api.post<{ access: string }>(API_ENDPOINTS.AUTH.REFRESH, { refresh: refreshToken });
-  },
 };

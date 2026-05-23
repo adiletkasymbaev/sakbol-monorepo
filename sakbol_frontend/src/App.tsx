@@ -11,6 +11,7 @@ import SettingsPage from "./modules/settings/pages/SettingsPage"
 import ContactsPage from "./modules/contacts/pages/ContactsPage"
 import MapPage from "./modules/map/pages/MapPage"
 import PushNotificationListener from "./shared/components/PushNotificationListener"
+import NotificationPermissionModal from "./shared/components/NotificationPermissionModal"
 import TourGroupsPage from "./modules/tour/pages/TourGroupsPage"
 import TourGroupDetailPage from "./modules/tour/pages/TourGroupDetailPage"
 import TourJoinPage from "./modules/tour/pages/TourJoinPage"
@@ -18,7 +19,6 @@ import TourLocationUpdater from "./modules/tour/components/TourLocationUpdater"
 import TourTimer from "./modules/tour/components/TourTimer"
 import NotificationsPage from "./modules/notifications/pages/NotificationsPage"
 import { ProfileRoles } from "./shared/enums/ProfileRoles"
-import { NativeSettings } from "./modules/settings/NativeSettings"
 
 const TOUR_ROLES = [ProfileRoles.TOUR_AGENCY, ProfileRoles.TOURIST, ProfileRoles.USER];
 
@@ -26,6 +26,7 @@ function App() {
   return (
     <>
       <PushNotificationListener />
+      <NotificationPermissionModal />
       <TourLocationUpdater />
       <TourTimer />
       <Routes>
@@ -41,7 +42,6 @@ function App() {
           <Route path={UrlNames.SOS_SETTINGS} element={<SettingsPage/>}/>
           <Route path={UrlNames.SOS_PROFILE} element={<ProfilePage/>}/>
           <Route path={UrlNames.SOS_NOTIFICATIONS} element={<NotificationsPage/>}/>
-          <Route path="/native-settings" element={<NativeSettings />}/>
 
           {/* Tour groups routes — доступно только туристам и агентам */}
           <Route path={UrlNames.TOUR_GROUPS} element={

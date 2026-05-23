@@ -24,7 +24,6 @@ export function useHandlers() {
             setLoginData(access, refresh, user_id, role);
 
             // verify it saved correctly
-            console.log("saved userId:", useAuth.getState().userId);
 
             addToast({
                 title: ToastTypes.OK,

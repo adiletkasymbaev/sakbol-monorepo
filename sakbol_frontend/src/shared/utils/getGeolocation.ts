@@ -1,7 +1,5 @@
 // src/shared/utils/geolocation.ts
-// В WebView берёт координаты из нативного приложения, в браузере — через navigator.geolocation.
-import { nativeBridge } from "../services/nativeBridge";
-import { nativeService } from "../services/nativeService";
+// Получение геолокации через navigator.geolocation (браузерный API).
 
 export interface GeolocationOptions {
   enableHighAccuracy?: boolean;
@@ -39,58 +37,10 @@ export function getGeolocation(
     maximumAge = 0,
   } = options;
 
-  console.log('[getGeolocation] called, timeout=' + timeout);
-
   return new Promise(async (resolve, reject) => {
-    // 1. Пробуем кешированную нативную локацию
-    const nativeLoc = nativeService.getLastLocation();
-    if (nativeLoc) {
-      console.log('[getGeolocation] using cached nativeLoc:', nativeLoc);
-      const result: GeolocationResult = {
-        latitude: nativeLoc.latitude,
-        longitude: nativeLoc.longitude,
-        accuracy: 0,
-        timestamp: nativeLoc.timestamp,
-      };
-      try {
-        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
-        resolve();
-      } catch (e) { reject(e); }
-      return;
-    }
-
-    // 2. Если WebView — просим Android прислать локацию и ждём (короткий таймаут)
-    if (nativeBridge.isNativeApp()) {
-      console.log('[getGeolocation] WebView detected, requesting current location from Android...');
-      nativeBridge.requestCurrentLocation(); // <-- ключевой вызов: говорим Android "пришли сейчас"
-      try {
-        const data = await nativeService.waitForLocation(Math.min(timeout, 5000));
-        console.log('[getGeolocation] received from Android:', data);
-        const result: GeolocationResult = {
-          latitude: data.latitude,
-          longitude: data.longitude,
-          accuracy: 0,
-          timestamp: data.timestamp,
-        };
-        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
-        resolve();
-        return;
-      } catch (err: any) {
-        console.warn('[getGeolocation] Android location timeout/failed:', err);
-        // Не вызываем fallback на браузер в WebView — просто ошибка
-        const error: GeolocationError = { code: 2, message: "Местоположение из приложения недоступно" };
-        callbacks?.onError?.(error);
-        callbacks?.onUnavailable?.();
-        reject(error);
-        return;
-      }
-    }
-
-    // 3. Fallback на браузерный API (только если НЕ WebView)
-    console.log('[getGeolocation] Using browser navigator.geolocation');
     if (!navigator.geolocation) {
       callbacks?.onUnavailable?.();
-      const error: GeolocationError = { code: 0, message: "Геолокация не поддерживается" };
+      const error: GeolocationError = { code: 0, message: "Geolocation not supported" };
       callbacks?.onError?.(error);
       reject(error);
       return;
@@ -98,7 +48,7 @@ export function getGeolocation(
 
     if (!window.isSecureContext) {
       callbacks?.onUnavailable?.();
-      const error: GeolocationError = { code: 0, message: "Требуется HTTPS или localhost" };
+      const error: GeolocationError = { code: 0, message: "Not secure context (need HTTPS or localhost)" };
       callbacks?.onError?.(error);
       reject(error);
       return;
@@ -118,21 +68,14 @@ export function getGeolocation(
         } catch (e) { reject(e); }
       },
       (err) => {
-        const error: GeolocationError = { code: err.code, message: "" };
+        const error: GeolocationError = { code: err.code, message: err.message };
         switch (err.code) {
           case 1:
-            error.message = "Доступ к геолокации запрещён";
             callbacks?.onDenied?.();
             break;
-          case 2:
-            error.message = "Местоположение недоступно";
-            break;
           case 3:
-            error.message = "Таймаут геолокации";
             callbacks?.onTimeout?.();
             break;
-          default:
-            error.message = "Неизвестная ошибка геолокации";
         }
         callbacks?.onError?.(error);
         reject(error);

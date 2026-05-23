@@ -55,8 +55,6 @@ export const API_ENDPOINTS = {
     UNREAD_COUNT: "/general/contacts_module/notifications/unread-count/",
   },
 
-  SUBSCRIBE: "/push/subscribe/",
-
   GEOFENCES: {
     LIST:         "/general/contacts_module/geofences/",
     BY_ID:        (id: number) => `/general/contacts_module/geofences/${id}/`,
