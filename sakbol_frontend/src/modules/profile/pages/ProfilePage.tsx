@@ -8,6 +8,7 @@ import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import { parseApiErrorToArray } from "../../../shared/utils/parseApiErrorToArray";
 import RenderWithSpinner from "../../../shared/components/RenderWithSpinner";
 import NullableCell from "../../../shared/components/NullableCell";
+import { getRoleRepr, type UserRole } from "../../../shared/utils/getRoleRepr";
 import useAuth from "../../../store/useAuth";
 import { capitalizeFirstLetter } from "../../../shared/utils/capitalizeFirstLetter";
 import { useTranslation } from "react-i18next";
@@ -56,6 +57,13 @@ export default function ProfilePage() {
     const ln = user?.last_name ?? "";
     return `${fn} ${ln}`.trim();
   }, [user?.first_name, user?.last_name]);
+
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return null;
+    const parts = date.split('-');
+    if (parts.length !== 3) return date;
+    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+  };
 
   async function fetchUser() {
     try {
@@ -149,7 +157,7 @@ export default function ProfilePage() {
                 </>
             ) : (
                 <>
-                    <Button color="primary" variant="flat" onPress={handleEditToggle}>
+                    <Button color="primary" onPress={handleEditToggle}>
                         {t('common.edit')}
                     </Button>
                     <Button color="danger" variant="flat" onPress={logout}>
@@ -163,10 +171,10 @@ export default function ProfilePage() {
       <Margin direction="b" value={2.5} />
 
       <Link to={"/" + UrlNames.SOS_NOTIFICATIONS}>
-        <Card shadow="sm" className="bg-primary-50 cursor-pointer">
-          <CardBody className="flex flex-row items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🔔</span>
+        <Card shadow="sm" className="bg-primary-50 cursor-pointer border-none">
+          <CardBody className="flex flex-row items-center justify-between px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🔔</span>
               <div>
                 <p className="text-sm font-semibold">{t('notifications.title')}</p>
                 <p className="text-xs text-default-500">
@@ -177,7 +185,7 @@ export default function ProfilePage() {
               </div>
             </div>
             {unreadCount > 0 && (
-              <div className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold">
+              <div className="w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">
                 {unreadCount}
               </div>
             )}
@@ -190,7 +198,7 @@ export default function ProfilePage() {
 
       <RenderWithSpinner wrapperHeight={220} isLoading={isLoading}>
         <div className="grid gap-3">
-          <Card shadow="sm" className="bg-content1">
+          <Card shadow="sm" className="bg-content1 border-none">
             <CardHeader className="flex items-center justify-between gap-3 relative">
               <div className="flex items-center gap-3">
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarChange} />
@@ -220,7 +228,7 @@ export default function ProfilePage() {
                     <p className="text-base font-semibold">{fullName || t('profile.noName')}</p>
                   )}
                   <p className="text-sm text-default-500 mt-1">
-                    {t('profile.id')}: <NullableCell value={user?.identifier} />, {t('profile.role')}: "{capitalizeFirstLetter(user?.role)}"
+                    {t('profile.id')}: <NullableCell value={user?.identifier} />, {t('profile.role')}: {getRoleRepr(user?.role as UserRole)}
                   </p>
                 </div>
               </div>
@@ -266,7 +274,7 @@ export default function ProfilePage() {
                   ) : (
                       <div className="grid gap-2">
                           <p className="text-sm">
-                            {t('profile.birthDate')}: <NullableCell value={user?.birth_date} />
+                            {t('profile.birthDate')}: <NullableCell value={formatDate(user?.birth_date)} />
                           </p>
                           {user?.med_info ? (
                             <p className="text-sm">

@@ -14,7 +14,6 @@ import ZonesDrawBridge from "./ZonesDrawBridge";
 import MapSpinner from "./MapSpinner";
 import { SetupPanes } from "../../../shared/components/SetupPanes";
 import { MapController } from "./MapController";
-import type { GeolocationResult } from "../../../shared/utils/getGeolocation";
 import useAuth from "../../../store/useAuth";
 import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
 
@@ -169,11 +168,10 @@ function MapLayer({ isDrawable = false, memberLocations, tourZones }: MapLayerPr
     const { contactsLocations, isLoading, geoLat, geoLon } = useLocation();
     const userRole = useAuth((state) => state.userRole);
 
-    const handleLocationSuccess = (_result: GeolocationResult) => {};
-
     // Decide which set of markers to show
     const showMembers = memberLocations && memberLocations.length > 0;
-    const hideDrawTools = userRole === ProfileRoles.TOURIST || userRole === ProfileRoles.TOUR_AGENCY;
+    // Показывать инструменты рисования только для parent и tour_agency
+    const showDrawTools = userRole === ProfileRoles.PARENT || userRole === ProfileRoles.TOUR_AGENCY;
 
     return (
         <div className="relative h-screen w-full">
@@ -189,7 +187,7 @@ function MapLayer({ isDrawable = false, memberLocations, tourZones }: MapLayerPr
                 <SetupPanes />
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-                <MapController onLocationFound={handleLocationSuccess} />
+                <MapController />
 
                 {/* My own location marker */}
                 {geoLat && geoLon && (
@@ -269,7 +267,7 @@ function MapLayer({ isDrawable = false, memberLocations, tourZones }: MapLayerPr
                         );
                     })}
 
-                {!hideDrawTools && (
+                {showDrawTools && (
                     <FeatureGroup>
                         <ZonesDrawBridge />
                     </FeatureGroup>
