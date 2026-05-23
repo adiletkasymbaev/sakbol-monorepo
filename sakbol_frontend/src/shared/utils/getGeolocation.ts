@@ -4,6 +4,7 @@
 // Иначе падает на navigator.geolocation (браузерный API).
 
 import { isNativeBridgeAvailable, onNativeLocation } from "../services/nativeBridge";
+import { useLocation } from "../../store/useLocation";
 
 export interface GeolocationOptions {
   enableHighAccuracy?: boolean;
@@ -95,15 +96,34 @@ function tryNativeLocation(
   reject: (err: GeolocationError) => void,
   options: GeolocationOptions
 ): void {
+  // Сначала проверяем стор — там уже могут быть актуальные координаты от updateLocationFromAndroid
+  const state = useLocation.getState();
+  if (state.geoLat != null && state.geoLon != null) {
+    const result: GeolocationResult = {
+      latitude: state.geoLat,
+      longitude: state.geoLon,
+      accuracy: 0,
+      timestamp: Date.now(),
+    };
+    (async () => {
+      try {
+        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
+        resolve();
+      } catch (e) {
+        reject(e as GeolocationError);
+      }
+    })();
+    return;
+  }
+
+  // Если стор пуст — ждём следующее обновление от нативного моста
   const { timeout = 20_000 } = options;
 
   const timeoutId = setTimeout(() => {
-    // Таймаут — нативный мост не ответил, падаем на браузерный API
     console.warn("[getGeolocation] Native bridge timeout, falling back to browser API");
     tryBrowserGeolocation(callbacks, resolve, reject, options);
-  }, Math.min(timeout, 15_000)); // макс 15 секунд ждём нативный мост
+  }, Math.min(timeout, 15_000));
 
-  // Подписываемся на следующее событие от нативного моста
   const unsub = onNativeLocation((lat, lng) => {
     clearTimeout(timeoutId);
     unsub();
@@ -111,7 +131,7 @@ function tryNativeLocation(
     const result: GeolocationResult = {
       latitude: lat,
       longitude: lng,
-      accuracy: 0, // нативный мост не передаёт точность
+      accuracy: 0,
       timestamp: Date.now(),
     };
 
