@@ -1,5 +1,9 @@
 // src/shared/utils/geolocation.ts
-// Получение геолокации через navigator.geolocation (браузерный API).
+// Получение геолокации.
+// Если доступен нативный Android-мост — использует его.
+// Иначе падает на navigator.geolocation (браузерный API).
+
+import { isNativeBridgeAvailable, onNativeLocation } from "../services/nativeBridge";
 
 export interface GeolocationOptions {
   enableHighAccuracy?: boolean;
@@ -27,60 +31,112 @@ export type GeolocationError = {
   message: string;
 };
 
-export function getGeolocation(
-  callbacks?: GeolocationCallbacks,
-  options: GeolocationOptions = {}
-): Promise<void> {
+function tryBrowserGeolocation(
+  callbacks: GeolocationCallbacks | undefined,
+  resolve: () => void,
+  reject: (err: GeolocationError) => void,
+  options: GeolocationOptions
+): void {
   const {
     enableHighAccuracy = false,
     timeout = 20_000,
     maximumAge = 0,
   } = options;
 
-  return new Promise(async (resolve, reject) => {
-    if (!navigator.geolocation) {
-      callbacks?.onUnavailable?.();
-      const error: GeolocationError = { code: 0, message: "Geolocation not supported" };
+  if (!navigator.geolocation) {
+    callbacks?.onUnavailable?.();
+    const error: GeolocationError = { code: 0, message: "Geolocation not supported" };
+    callbacks?.onError?.(error);
+    reject(error);
+    return;
+  }
+
+  if (!window.isSecureContext) {
+    callbacks?.onUnavailable?.();
+    const error: GeolocationError = { code: 0, message: "Not secure context (need HTTPS or localhost)" };
+    callbacks?.onError?.(error);
+    reject(error);
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const result: GeolocationResult = {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        timestamp: pos.timestamp,
+      };
+      try {
+        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
+        resolve();
+      } catch (e) { reject(e as GeolocationError); }
+    },
+    (err) => {
+      const error: GeolocationError = { code: err.code, message: err.message };
+      switch (err.code) {
+        case 1:
+          callbacks?.onDenied?.();
+          break;
+        case 3:
+          callbacks?.onTimeout?.();
+          break;
+      }
       callbacks?.onError?.(error);
       reject(error);
-      return;
-    }
+    },
+    { enableHighAccuracy, timeout, maximumAge }
+  );
+}
 
-    if (!window.isSecureContext) {
-      callbacks?.onUnavailable?.();
-      const error: GeolocationError = { code: 0, message: "Not secure context (need HTTPS or localhost)" };
-      callbacks?.onError?.(error);
-      reject(error);
-      return;
-    }
+function tryNativeLocation(
+  callbacks: GeolocationCallbacks | undefined,
+  resolve: () => void,
+  reject: (err: GeolocationError) => void,
+  options: GeolocationOptions
+): void {
+  const { timeout = 20_000 } = options;
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const result: GeolocationResult = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-          timestamp: pos.timestamp,
-        };
-        try {
-          if (callbacks?.onSuccess) await callbacks.onSuccess(result);
-          resolve();
-        } catch (e) { reject(e); }
-      },
-      (err) => {
-        const error: GeolocationError = { code: err.code, message: err.message };
-        switch (err.code) {
-          case 1:
-            callbacks?.onDenied?.();
-            break;
-          case 3:
-            callbacks?.onTimeout?.();
-            break;
-        }
-        callbacks?.onError?.(error);
-        reject(error);
-      },
-      { enableHighAccuracy, timeout, maximumAge }
-    );
+  const timeoutId = setTimeout(() => {
+    // Таймаут — нативный мост не ответил, падаем на браузерный API
+    console.warn("[getGeolocation] Native bridge timeout, falling back to browser API");
+    tryBrowserGeolocation(callbacks, resolve, reject, options);
+  }, Math.min(timeout, 15_000)); // макс 15 секунд ждём нативный мост
+
+  // Подписываемся на следующее событие от нативного моста
+  const unsub = onNativeLocation((lat, lng) => {
+    clearTimeout(timeoutId);
+    unsub();
+
+    const result: GeolocationResult = {
+      latitude: lat,
+      longitude: lng,
+      accuracy: 0, // нативный мост не передаёт точность
+      timestamp: Date.now(),
+    };
+
+    (async () => {
+      try {
+        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
+        resolve();
+      } catch (e) {
+        reject(e as GeolocationError);
+      }
+    })();
+  });
+}
+
+export function getGeolocation(
+  callbacks?: GeolocationCallbacks,
+  options: GeolocationOptions = {}
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    // Если доступен нативный мост Android — используем его
+    if (isNativeBridgeAvailable()) {
+      tryNativeLocation(callbacks, resolve, reject, options);
+    } else {
+      // В браузере или вне WebView — используем navigator.geolocation
+      tryBrowserGeolocation(callbacks, resolve, reject, options);
+    }
   });
 }

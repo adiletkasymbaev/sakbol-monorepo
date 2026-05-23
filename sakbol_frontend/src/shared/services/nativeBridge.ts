@@ -11,6 +11,7 @@
 import { addToast } from "@heroui/react";
 import api from "./axios";
 import useAuth from "../../store/useAuth";
+import { useLocation } from "../../store/useLocation";
 
 // ──────────────────────────────────────────────
 // Очередь отложенных FCM-токенов
@@ -47,6 +48,36 @@ async function sendFcmTokenToBackend(token: string, accessToken: string) {
 }
 
 // ──────────────────────────────────────────────
+// 0. Проверка доступности нативного моста
+// ──────────────────────────────────────────────
+
+/**
+ * Проверяет, работаем ли мы внутри Android WebView с нативным мостом.
+ * Используется в getGeolocation для выбора источника геолокации.
+ */
+export function isNativeBridgeAvailable(): boolean {
+  return navigator.userAgent.includes("AppWebView/sakbol");
+}
+
+// ──────────────────────────────────────────────
+// 0.5. Система промисов для геолокации от нативного моста
+// ──────────────────────────────────────────────
+
+type NativeLocationCallback = (lat: number, lng: number) => void;
+let pendingLocationCallbacks: NativeLocationCallback[] = [];
+
+/**
+ * Подписаться на одно событие геолокации от нативного моста.
+ * Возвращает функцию отписки.
+ */
+export function onNativeLocation(callback: NativeLocationCallback): () => void {
+  pendingLocationCallbacks.push(callback);
+  return () => {
+    pendingLocationCallbacks = pendingLocationCallbacks.filter((cb) => cb !== callback);
+  };
+}
+
+// ──────────────────────────────────────────────
 // 1. Приём FCM-токена от Android → отправка на бэкенд
 // ──────────────────────────────────────────────
 (window as any).updateFcmTokenFromAndroid = (token: string) => {
@@ -76,9 +107,10 @@ async function sendFcmTokenToBackend(token: string, accessToken: string) {
 };
 
 // ──────────────────────────────────────────────
-// 2. Приём геолокации от Android → отправка на бэкенд
+// 2. Приём геолокации от Android → отправка на бэкенд + стор
 // ──────────────────────────────────────────────
 (window as any).updateLocationFromAndroid = async (lat: number, lng: number) => {
+  // Отправляем на бэкенд
   try {
     await api.post("/general/locations_module/update/", {
       latitude: lat,
@@ -87,6 +119,14 @@ async function sendFcmTokenToBackend(token: string, accessToken: string) {
   } catch (error: any) {
     console.error("[NativeBridge] Location update error:", error?.response?.status || error?.message);
   }
+
+  // Уведомляем подписчиков (pending-промисы из getGeolocation)
+  const callbacks = [...pendingLocationCallbacks];
+  pendingLocationCallbacks = [];
+  callbacks.forEach((cb) => cb(lat, lng));
+
+  // Обновляем стор с геолокацией (чтобы карта показала позицию)
+  useLocation.getState().setGeoLocation(lat, lng);
 };
 
 // ──────────────────────────────────────────────
