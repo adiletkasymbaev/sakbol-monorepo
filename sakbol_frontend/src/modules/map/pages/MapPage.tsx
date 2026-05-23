@@ -7,7 +7,6 @@ import { useContacts } from "../../../store/useContacts";
 import ContactsAcceptedList from "../../contacts/components/ContactsAcceptedList";
 import BottomSheet from "../components/BottomSheet";
 import MapLayer from "../components/MapLayer";
-import { PushDebug } from "../../push/pushDebug";
 import { useZonesStore } from "../hooks/useZonesStore";
 import useAuth from "../../../store/useAuth";
 import { ProfileRoles } from "../../../shared/enums/ProfileRoles";
@@ -186,7 +185,6 @@ function MapPage() {
             </BottomSheet>
 
             <NavBar />
-            <PushDebug />
         </div>
     );
 }
