@@ -19,6 +19,10 @@ type LocationState = {
   setDisplayLocation: (lat: number, lon: number) => void;
   setGeoLocation: (lat: number, lon: number) => void;
 
+  // фокус карты
+  focusTrigger: number;
+  triggerFocus: () => void;
+
   // api methods
   fetchContactsLocations: () => Promise<void>;
   updateMyLocation: (lat: number, lon: number) => Promise<void>;
@@ -33,6 +37,7 @@ export const useLocation = create<LocationState>((set) => ({
 
   contactsLocations: [],
   isLoading: false,
+  focusTrigger: 0,
 
   setDisplayLocation: (lat, lon) =>
     set({
@@ -46,6 +51,8 @@ export const useLocation = create<LocationState>((set) => ({
     displayLat: lat,
     displayLon: lon,
   }),
+
+  triggerFocus: () => set({ focusTrigger: Date.now() }),
 
   fetchContactsLocations: async () => {
     set({ isLoading: true });

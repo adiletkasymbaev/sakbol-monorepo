@@ -11,7 +11,7 @@ interface Props {
 
 export function MapController({ onLocationFound, defaultZoom = 14 }: Props) {
   const map = useMap(); // ✅ Теперь это работает — мы внутри MapContainer
-  const { geoLat, geoLon } = useLocation();
+  const { geoLat, geoLon, focusTrigger } = useLocation();
   const { updateGeolocation } = useGeolocationUpdate();
   const hasAutoFocusedRef = useRef(false);
 
@@ -52,20 +52,12 @@ export function MapController({ onLocationFound, defaultZoom = 14 }: Props) {
     }
   }, []);
 
-  // 🔹 Экспортируем функцию фокуса для внешних вызовов (опционально)
+  // 🔹 Фокус на локацию по запросу (кнопка "Моё местоположение")
   useEffect(() => {
-    // Сохраняем ссылку на функцию в window для отладки (удалите в продакшене)
-    // @ts-ignore
-    window.__focusOnUserLocation = () => {
-      if (geoLat && geoLon) {
-        focusOnLocation(geoLat, geoLon);
-      }
-    };
-    return () => {
-      // @ts-ignore
-      delete window.__focusOnUserLocation;
-    };
-  }, [focusOnLocation, geoLat, geoLon]);
+    if (focusTrigger > 0 && geoLat && geoLon) {
+      focusOnLocation(geoLat, geoLon);
+    }
+  }, [focusTrigger, geoLat, geoLon, focusOnLocation]);
 
   return null; // Этот компонент ничего не рендерит, только управляет картой
 }

@@ -1,9 +1,8 @@
 // src/shared/utils/geolocation.ts
 // Получение геолокации.
-// Если доступен нативный Android-мост — использует его.
-// Иначе падает на navigator.geolocation (браузерный API).
+// Всегда сначала читает стор (там актуальные координаты от нативного моста Android).
+// Если стор пуст — использует navigator.geolocation (браузерный API).
 
-import { isNativeBridgeAvailable, onNativeLocation } from "../services/nativeBridge";
 import { useLocation } from "../../store/useLocation";
 
 export interface GeolocationOptions {
@@ -90,73 +89,32 @@ function tryBrowserGeolocation(
   );
 }
 
-function tryNativeLocation(
-  callbacks: GeolocationCallbacks | undefined,
-  resolve: () => void,
-  reject: (err: GeolocationError) => void,
-  options: GeolocationOptions
-): void {
-  // Сначала проверяем стор — там уже могут быть актуальные координаты от updateLocationFromAndroid
-  const state = useLocation.getState();
-  if (state.geoLat != null && state.geoLon != null) {
-    const result: GeolocationResult = {
-      latitude: state.geoLat,
-      longitude: state.geoLon,
-      accuracy: 0,
-      timestamp: Date.now(),
-    };
-    (async () => {
-      try {
-        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
-        resolve();
-      } catch (e) {
-        reject(e as GeolocationError);
-      }
-    })();
-    return;
-  }
-
-  // Если стор пуст — ждём следующее обновление от нативного моста
-  const { timeout = 20_000 } = options;
-
-  const timeoutId = setTimeout(() => {
-    console.warn("[getGeolocation] Native bridge timeout, falling back to browser API");
-    tryBrowserGeolocation(callbacks, resolve, reject, options);
-  }, Math.min(timeout, 15_000));
-
-  const unsub = onNativeLocation((lat, lng) => {
-    clearTimeout(timeoutId);
-    unsub();
-
-    const result: GeolocationResult = {
-      latitude: lat,
-      longitude: lng,
-      accuracy: 0,
-      timestamp: Date.now(),
-    };
-
-    (async () => {
-      try {
-        if (callbacks?.onSuccess) await callbacks.onSuccess(result);
-        resolve();
-      } catch (e) {
-        reject(e as GeolocationError);
-      }
-    })();
-  });
-}
-
 export function getGeolocation(
   callbacks?: GeolocationCallbacks,
   options: GeolocationOptions = {}
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    // Если доступен нативный мост Android — используем его
-    if (isNativeBridgeAvailable()) {
-      tryNativeLocation(callbacks, resolve, reject, options);
-    } else {
-      // В браузере или вне WebView — используем navigator.geolocation
-      tryBrowserGeolocation(callbacks, resolve, reject, options);
+    // Всегда сначала читаем стор — там могут быть актуальные координаты от нативного моста
+    const state = useLocation.getState();
+    if (state.geoLat != null && state.geoLon != null) {
+      const result: GeolocationResult = {
+        latitude: state.geoLat,
+        longitude: state.geoLon,
+        accuracy: 0,
+        timestamp: Date.now(),
+      };
+      (async () => {
+        try {
+          if (callbacks?.onSuccess) await callbacks.onSuccess(result);
+          resolve();
+        } catch (e) {
+          reject(e as GeolocationError);
+        }
+      })();
+      return;
     }
+
+    // Если стор пуст — используем браузерный API
+    tryBrowserGeolocation(callbacks, resolve, reject, options);
   });
 }
