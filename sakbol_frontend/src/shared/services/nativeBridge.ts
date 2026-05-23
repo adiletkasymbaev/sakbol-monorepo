@@ -141,21 +141,29 @@ const SOS_PHRASES = ["помогите", "сос", "эс о эс", "помощь
   const isSos = SOS_PHRASES.some((keyword) => normalized.includes(keyword));
 
   if (isSos) {
-    // Пробуем получить текущие координаты
+    // Берём последние известные координаты из стора
+    // Они обновляются в реальном времени через updateLocationFromAndroid
     let lat = 0;
     let lng = 0;
 
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 3000,
-          enableHighAccuracy: false,
+    const locationState = useLocation.getState();
+    if (locationState.geoLat != null && locationState.geoLon != null) {
+      lat = locationState.geoLat;
+      lng = locationState.geoLon;
+    } else {
+      // Если координат в сторе нет — пробуем получить через браузерный API
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 3000,
+            enableHighAccuracy: false,
+          });
         });
-      });
-      lat = pos.coords.latitude;
-      lng = pos.coords.longitude;
-    } catch {
-      // Android может дополнить координаты через updateLocationFromAndroid
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch {
+        // Нет координат — отправляем с 0, 0
+      }
     }
 
     try {
