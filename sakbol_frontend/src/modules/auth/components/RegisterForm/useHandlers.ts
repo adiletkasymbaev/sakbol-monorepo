@@ -19,7 +19,7 @@ export function useHandlers({ onSuccess }: { onSuccess: (email: string) => void 
 
     const payload = {
       ...data,
-      birth_date: dateToString(data.birth_date),
+      birth_date: data.birth_date ? dateToString(data.birth_date) : null,
     };
 
     try {

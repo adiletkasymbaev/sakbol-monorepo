@@ -3,14 +3,14 @@ export type RegisterPostBody = {
   password: string;
   first_name: string;
   last_name: string;
-  birth_date: string;
-  city: string;
-  street: string;
-  house_number: string;
-  apartment_number?: string | undefined;
-  med_info?: string | undefined;
   role: string;
-  phone_number: string;
+  birth_date?: string | null;
+  city?: string;
+  street?: string;
+  house_number?: string;
+  apartment_number?: string;
+  med_info?: string;
+  phone_number?: string;
 }
 
 export type RegisterCreatedResponse = {

@@ -21,8 +21,8 @@ function NavBar() {
 
     const content = (
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full z-9999 bg-primary p-2 rounded-t-md">
-            <div className="flex justify-between relative items-center">
-                <div className="flex gap-5">
+            <div className="grid grid-cols-3 items-center">
+                <div className="flex justify-start gap-5 pl-1">
                     <NavItem link="/" icon={<IconHouse className="w-5 h-5" />} activeClass={activeClass} inactiveClass={inactiveClass}>
                         {t('navbar.home')}
                     </NavItem>
@@ -48,9 +48,11 @@ function NavBar() {
                     )}
                 </div>
 
-                <SosButton/>
+                <div className="flex justify-center">
+                    <SosButton/>
+                </div>
 
-                <div className="flex gap-5">
+                <div className="flex justify-end gap-5 pr-1">
                     <NavItem link={"/" + UrlNames.SOS_SETTINGS} icon={<IconGear className="w-5 h-5" />} activeClass={activeClass} inactiveClass={inactiveClass}>
                         {t('navbar.settings')}
                     </NavItem>

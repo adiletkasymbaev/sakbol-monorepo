@@ -53,6 +53,8 @@
       "healthInfo": "Информация о здоровье (Необяз.)",
       "healthInfoPlaceholder": "Введите информацию",
       "confirm": "Подтвердить",
+      "rolePlaceholder": "Выберите вашу роль",
+      "optionalFields": "Дополнительная информация (необязательно)",
       "back": "Вернуться"
     },
     "fallback": {

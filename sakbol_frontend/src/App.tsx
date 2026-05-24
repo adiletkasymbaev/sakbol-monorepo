@@ -1,6 +1,5 @@
 import { Route, Routes } from "react-router-dom"
 import UrlNames from "./shared/enums/UrlNames"
-import SelectRolePage from "./modules/auth/pages/SelectRolePage"
 import RegisterPage from "./modules/auth/pages/RegisterPage"
 import RequireGuest from "./shared/guards/RequireGuest"
 import RequireAuth from "./shared/guards/RequireAuth"
@@ -32,7 +31,6 @@ function App() {
       <Routes>
         <Route path="/" element={<RequireGuest/>}>
           <Route path={UrlNames.LOGIN} element={<LoginPage/>}/>
-          <Route path={UrlNames.SELECT_ROLE} element={<SelectRolePage/>}/>
           <Route path={UrlNames.REGISTER} element={<RegisterPage/>}/>
         </Route>
 

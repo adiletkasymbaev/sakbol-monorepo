@@ -53,6 +53,8 @@
       "healthInfo": "Ден соолук маалыматы (Милдеттүү эмес)",
       "healthInfoPlaceholder": "Маалыматты киргизиңиз",
       "confirm": "Ырастоо",
+      "rolePlaceholder": "Ролуңузду тандаңыз",
+      "optionalFields": "Кошумча маалымат (милдеттүү эмес)",
       "back": "Артка"
     },
     "fallback": {

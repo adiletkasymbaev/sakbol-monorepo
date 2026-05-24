@@ -53,6 +53,8 @@
       "healthInfo": "Health information (Optional)",
       "healthInfoPlaceholder": "Enter information",
       "confirm": "Confirm",
+      "rolePlaceholder": "Select your role",
+      "optionalFields": "Additional information (optional)",
       "back": "Back"
     },
     "fallback": {
