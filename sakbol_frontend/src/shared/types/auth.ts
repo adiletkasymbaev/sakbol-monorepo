@@ -4,13 +4,6 @@ export type RegisterPostBody = {
   first_name: string;
   last_name: string;
   role: string;
-  birth_date?: string | null;
-  city?: string;
-  street?: string;
-  house_number?: string;
-  apartment_number?: string;
-  med_info?: string;
-  phone_number?: string;
 }
 
 export type RegisterCreatedResponse = {

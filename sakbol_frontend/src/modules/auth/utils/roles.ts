@@ -4,31 +4,31 @@ const roles = [
     {
         id: 1,
         key: ProfileRoles.USER,
-        title: "Мен SOS колдонуучусумун",
+        title: "SOS-пользователь",
         description: "Негизги сөздү айтсам, жакындарыма SOS-белги автоматтык түрдө жөнөтө алам",
     },
     {
         id: 2,
         key: ProfileRoles.PARENT,
-        title: "Мен ата-энемин",
+        title: "Родитель",
         description: "Баламдын коопсуздугу тууралуу билдирүүлөрдү алып, көзөмөлдөй алам",
     },
     {
         id: 3,
         key: ProfileRoles.CHILD,
-        title: "Мен баламын",
+        title: "Ребенок",
         description: "Жайгашкан жерим менен бөлүшүп, ата-энеме SOS-белги жөнөтө алам",
     },
     {
         id: 4,
         key: ProfileRoles.TOUR_AGENCY,
-        title: "Мен гидмин",
+        title: "Тур. агентство",
         description: "Топтогу туристтердин жайгашкан жерин көзөмөлдөй алам",
     },
     {
         id: 5,
         key: ProfileRoles.TOURIST,
-        title: "Мен туристмин",
+        title: "Турист",
         description: "Жайгашкан жерим менен бөлүшүп, гидге SOS-белги жөнөтө алам",
     },
 ];

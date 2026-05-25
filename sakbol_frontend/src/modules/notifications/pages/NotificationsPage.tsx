@@ -177,8 +177,6 @@ export default function NotificationsPage() {
           ))}
         </div>
       </RenderWithSpinner>
-
-      <div className="pb-14" />
     </div>
   );
 }

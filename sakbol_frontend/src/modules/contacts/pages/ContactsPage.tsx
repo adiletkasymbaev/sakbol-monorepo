@@ -40,10 +40,7 @@ function ContactsPage() {
                     <СontactsPendingList/>
                 </Tab>
             </Tabs>
-
             <NavBar/>
-
-            <div className="pb-10" />
         </div>
     );
 

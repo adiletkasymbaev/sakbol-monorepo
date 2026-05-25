@@ -3,7 +3,7 @@ import Heading from "../../../shared/components/Heading";
 import Margin from "../../../shared/components/Margin";
 import NavBar from "../../../shared/components/NavBar";
 import { profileService } from "../../../shared/services/profileService";
-import { addToast, Avatar, Button, Divider, Card, CardHeader, CardBody, Input, Textarea, Autocomplete, AutocompleteItem } from "@heroui/react";
+import { addToast, Avatar, Button, Divider, Card, CardHeader, CardBody, Input, Textarea, Autocomplete, AutocompleteItem, Select, SelectItem } from "@heroui/react";
 import { ToastTypes } from "../../../shared/enums/ToastTypes";
 import { parseApiErrorToArray } from "../../../shared/utils/parseApiErrorToArray";
 import RenderWithSpinner from "../../../shared/components/RenderWithSpinner";
@@ -12,6 +12,7 @@ import { getRoleRepr, type UserRole } from "../../../shared/utils/getRoleRepr";
 import useAuth from "../../../store/useAuth";
 import { capitalizeFirstLetter } from "../../../shared/utils/capitalizeFirstLetter";
 import { useTranslation } from "react-i18next";
+import roles from "../../auth/utils/roles";
 import { ChangePasswordModal, ChangeEmailModal } from "../components/SecurityModals";
 import { Link } from "react-router-dom";
 import UrlNames from "../../../shared/enums/UrlNames";
@@ -105,12 +106,14 @@ export default function ProfilePage() {
         house_number: editData.house_number,
         apartment_number: editData.apartment_number,
         med_info: editData.med_info,
-        phone_number: editData.phone_number
+        phone_number: editData.phone_number,
+        role: editData.role,
       };
       
       const response = await profileService.updateMe(payload);
       setUser(response.data as ProfileUser);
       setEditData(response.data as ProfileUser);
+      setUserRole(response.data.role);
       setIsEditing(false);
       addToast({ title: ToastTypes.OK, description: "Профиль успешно обновлен", color: "success" });
     } catch (error) {
@@ -197,7 +200,7 @@ export default function ProfilePage() {
       <Margin direction="t" value={4} />
 
       <RenderWithSpinner wrapperHeight={220} isLoading={isLoading}>
-        <div className="grid gap-3">
+        <div className="grid gap-3 pb-20">
           <Card shadow="sm" className="bg-content1 border-none">
             <CardHeader className="flex items-center justify-between gap-3 relative">
               <div className="flex items-center gap-3">
@@ -268,11 +271,28 @@ export default function ProfilePage() {
                   <Divider className="my-2" />
                   {isEditing ? (
                       <div className="grid gap-2">
+                          <Select
+                              size="sm"
+                              label={t('profile.role')}
+                              selectedKeys={editData.role ? [editData.role] : []}
+                              onSelectionChange={(keys) => {
+                                  const val = Array.from(keys)[0] as string;
+                                  if (val) c("role")(val);
+                              }}
+                              disallowEmptySelection
+                          >
+                              {roles.map((r) => (
+                                  <SelectItem key={r.key}>{r.title}</SelectItem>
+                              ))}
+                          </Select>
                           <Input size="sm" type="date" label={t('profile.birthDate')} value={editData.birth_date || ""} onValueChange={c("birth_date")} />
                           <Textarea size="sm" label={t('profile.medicalInfo')} value={editData.med_info || ""} onValueChange={c("med_info")} />
                       </div>
                   ) : (
                       <div className="grid gap-2">
+                          <p className="text-sm">
+                            {t('profile.role')}: {getRoleRepr(user?.role as UserRole)}
+                          </p>
                           <p className="text-sm">
                             {t('profile.birthDate')}: <NullableCell value={formatDate(user?.birth_date)} />
                           </p>
@@ -341,8 +361,6 @@ export default function ProfilePage() {
         </div>
       </RenderWithSpinner>
 
-      <div className="pb-14" />
-      
       <ChangePasswordModal 
           isOpen={isPasswordModalOpen} 
           onClose={() => setPasswordModalOpen(false)} 

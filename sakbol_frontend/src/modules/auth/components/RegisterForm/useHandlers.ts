@@ -1,8 +1,6 @@
 import { addToast } from "@heroui/react";
 import { authService } from "../../../../shared/services/authService";
-import { dateToString } from "../../../../shared/utils/dateToString";
 import type { RegisterFormType } from "../../utils/schemas";
-import useAuth from "../../../../store/useAuth";
 import { ToastTypes } from "../../../../shared/enums/ToastTypes";
 import { parseApiErrorToArray } from "../../../../shared/utils/parseApiErrorToArray";
 import { useNavigate } from "react-router-dom";
@@ -17,13 +15,8 @@ export function useHandlers({ onSuccess }: { onSuccess: (email: string) => void 
     if (isLoading) return;
     setLoading(true);
 
-    const payload = {
-      ...data,
-      birth_date: data.birth_date ? dateToString(data.birth_date) : null,
-    };
-
     try {
-      const response = await authService.register(payload);
+      const response = await authService.register(data);
       addToast({
         title: ToastTypes.OK,
         description: response.data.detail || "Код отправлен",
